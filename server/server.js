@@ -1,14 +1,20 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
+const path = require('path');
+const { ensureDirectoriesExist } = require('./config/storage');
 
 // 환경변수 로드
 dotenv.config();
+
+// 업로드 디렉토리 생성
+ensureDirectoriesExist();
 
 // 데이터베이스 연결 테스트를 위해 auth 라우트를 조건부로 로드
 let authRoutes;
 let profileRoutes;
 let analysisRoutes;
+let mediaRoutes;
 
 try {
   authRoutes = require('./routes/auth');
@@ -35,6 +41,14 @@ try {
   analysisRoutes = null;
 }
 
+try {
+  mediaRoutes = require('./routes/media');
+  console.log('✓ Media 라우트 로드 성공');
+} catch (error) {
+  console.log('✗ Media 라우트 로드 실패:', error.message);
+  mediaRoutes = null;
+}
+
 const app = express();
 const PORT = process.env.PORT || 5000;
 
@@ -42,6 +56,9 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// 정적 파일 제공 (업로드된 이미지)
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // 라우트
 if (authRoutes) {
@@ -64,6 +81,14 @@ if (analysisRoutes) {
   app.use('/api/analysis', analysisRoutes);
 } else {
   app.use('/api/analysis', (req, res) => {
+    res.status(503).json({ message: '데이터베이스 연결이 필요합니다.' });
+  });
+}
+
+if (mediaRoutes) {
+  app.use('/api/media', mediaRoutes);
+} else {
+  app.use('/api/media', (req, res) => {
     res.status(503).json({ message: '데이터베이스 연결이 필요합니다.' });
   });
 }

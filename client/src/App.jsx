@@ -8,6 +8,8 @@ import ProfileView from './pages/ProfileView';
 import StartAnalysis from './pages/StartAnalysis';
 import AnalysisResult from './pages/AnalysisResult';
 import AnalysisHistory from './pages/AnalysisHistory';
+import MediaUpload from './pages/MediaUpload';
+import MediaGallery from './pages/MediaGallery';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -78,6 +80,22 @@ function App() {
             element={
               <ProtectedRoute>
                 <AnalysisHistory />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/upload" 
+            element={
+              <ProtectedRoute>
+                <MediaUpload />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/gallery" 
+            element={
+              <ProtectedRoute>
+                <MediaGallery />
               </ProtectedRoute>
             } 
           />

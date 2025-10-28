@@ -13,6 +13,9 @@ client/dist/
 client/build/
 *.log
 
+# Uploaded files
+server/uploads/
+
 # IDE
 .vscode/
 .idea/

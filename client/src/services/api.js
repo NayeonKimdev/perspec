@@ -36,4 +36,47 @@ api.interceptors.response.use(
   }
 );
 
+// 미디어 관련 API
+export const mediaApi = {
+  // 단일 이미지 업로드
+  uploadImage: (formData, onUploadProgress) => {
+    return api.post('/media/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      },
+      onUploadProgress: (progressEvent) => {
+        if (onUploadProgress) {
+          const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          onUploadProgress(percentCompleted);
+        }
+      }
+    });
+  },
+
+  // 다중 이미지 업로드
+  uploadMultipleImages: (formData, onUploadProgress) => {
+    return api.post('/media/upload-multiple', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      },
+      onUploadProgress: (progressEvent) => {
+        if (onUploadProgress) {
+          const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          onUploadProgress(percentCompleted);
+        }
+      }
+    });
+  },
+
+  // 미디어 목록 조회
+  getMediaList: (params = {}) => {
+    return api.get('/media/list', { params });
+  },
+
+  // 미디어 삭제
+  deleteMedia: (id) => {
+    return api.delete(`/media/${id}`);
+  }
+};
+
 export default api;

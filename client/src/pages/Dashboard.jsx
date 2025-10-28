@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Brain, History, TrendingUp } from 'lucide-react';
+import { Brain, History, TrendingUp, Image, Upload } from 'lucide-react';
 import api from '../services/api';
+import { mediaApi } from '../services/api';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -9,6 +10,8 @@ const Dashboard = () => {
   const [hasProfile, setHasProfile] = useState(false);
   const [loading, setLoading] = useState(true);
   const [latestAnalysis, setLatestAnalysis] = useState(null);
+  const [mediaCount, setMediaCount] = useState(0);
+  const [recentImages, setRecentImages] = useState([]);
 
   useEffect(() => {
     const checkProfile = async () => {
@@ -34,8 +37,19 @@ const Dashboard = () => {
       }
     };
 
+    const fetchMedia = async () => {
+      try {
+        const response = await mediaApi.getMediaList({ limit: 3 });
+        setMediaCount(response.data.total);
+        setRecentImages(response.data.media);
+      } catch (error) {
+        console.error('미디어 조회 실패:', error);
+      }
+    };
+
     checkProfile();
     fetchLatestAnalysis();
+    fetchMedia();
   }, []);
 
   const handleLogout = () => {
@@ -185,6 +199,58 @@ const Dashboard = () => {
                     )}
                   </>
                 )}
+
+                {/* 갤러리 섹션 */}
+                <div className="bg-white rounded-lg shadow p-6 mb-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-lg font-medium text-gray-900 flex items-center gap-2">
+                      <Image className="w-5 h-5 text-blue-600" />
+                      내 갤러리
+                    </h2>
+                  </div>
+                  
+                  <div className="grid grid-cols-3 gap-4 mb-4">
+                    {recentImages.length === 0 ? (
+                      <div className="col-span-3 text-center py-8">
+                        <Image className="w-16 h-16 text-gray-300 mx-auto mb-2" />
+                        <p className="text-gray-500 text-sm mb-4">아직 업로드한 이미지가 없습니다</p>
+                      </div>
+                    ) : (
+                      <>
+                        {recentImages.slice(0, 3).map((image) => (
+                          <div
+                            key={image.id}
+                            className="aspect-square bg-gray-100 rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition"
+                            onClick={() => navigate('/gallery')}
+                          >
+                            <img
+                              src={image.file_url}
+                              alt={image.file_name}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        ))}
+                      </>
+                    )}
+                  </div>
+
+                  <div className="flex gap-4">
+                    <button
+                      onClick={() => navigate('/gallery')}
+                      className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition font-medium flex items-center justify-center gap-2"
+                    >
+                      <Image className="w-4 h-4" />
+                      갤러리 보기 ({mediaCount}개)
+                    </button>
+                    <button
+                      onClick={() => navigate('/upload')}
+                      className="flex items-center gap-2 px-4 py-2 border-2 border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition font-medium"
+                    >
+                      <Upload className="w-4 h-4" />
+                      이미지 업로드
+                    </button>
+                  </div>
+                </div>
 
                 {/* 대시보드 개요 */}
                 <div className="bg-gray-50 rounded-lg p-6">
