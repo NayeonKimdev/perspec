@@ -5,8 +5,12 @@ const fs = require('fs');
 const UPLOAD_DIR = path.join(__dirname, '../uploads');
 const IMAGES_DIR = path.join(__dirname, '../uploads/images');
 const TEMP_DIR = path.join(__dirname, '../uploads/temp');
+const DOCUMENTS_DIR = path.join(__dirname, '../uploads/documents');
+const DOCUMENTS_TXT_DIR = path.join(__dirname, '../uploads/documents/txt');
+const DOCUMENTS_JSON_DIR = path.join(__dirname, '../uploads/documents/json');
+const DOCUMENTS_OTHER_DIR = path.join(__dirname, '../uploads/documents/other');
 
-// 허용된 파일 타입
+// 허용된 이미지 파일 타입
 const ALLOWED_MIME_TYPES = [
   'image/jpeg',
   'image/jpg',
@@ -17,8 +21,20 @@ const ALLOWED_MIME_TYPES = [
 
 const ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
 
-// 최대 파일 크기 (10MB)
+// 허용된 텍스트 파일 타입
+const ALLOWED_TEXT_MIME_TYPES = [
+  'text/plain',
+  'text/markdown',
+  'application/json',
+  'text/csv',
+  'text/x-log'
+];
+
+const ALLOWED_TEXT_EXTENSIONS = ['.txt', '.md', '.json', '.csv', '.log'];
+
+// 최대 파일 크기
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB in bytes
+const MAX_TEXT_FILE_SIZE = 5 * 1024 * 1024; // 5MB in bytes (텍스트 파일용)
 
 // 디렉토리 생성 함수
 const ensureDirectoriesExist = () => {
@@ -30,6 +46,18 @@ const ensureDirectoriesExist = () => {
   }
   if (!fs.existsSync(TEMP_DIR)) {
     fs.mkdirSync(TEMP_DIR, { recursive: true });
+  }
+  if (!fs.existsSync(DOCUMENTS_DIR)) {
+    fs.mkdirSync(DOCUMENTS_DIR, { recursive: true });
+  }
+  if (!fs.existsSync(DOCUMENTS_TXT_DIR)) {
+    fs.mkdirSync(DOCUMENTS_TXT_DIR, { recursive: true });
+  }
+  if (!fs.existsSync(DOCUMENTS_JSON_DIR)) {
+    fs.mkdirSync(DOCUMENTS_JSON_DIR, { recursive: true });
+  }
+  if (!fs.existsSync(DOCUMENTS_OTHER_DIR)) {
+    fs.mkdirSync(DOCUMENTS_OTHER_DIR, { recursive: true });
   }
 };
 
@@ -54,17 +82,49 @@ const validateFileSize = (size) => {
   return size <= MAX_FILE_SIZE;
 };
 
+// 텍스트 파일 MIME 타입 확인
+const isAllowedTextMimeType = (mimetype) => {
+  return ALLOWED_TEXT_MIME_TYPES.includes(mimetype);
+};
+
+// 텍스트 파일 확장자 확인
+const isAllowedTextExtension = (filename) => {
+  const ext = path.extname(filename).toLowerCase();
+  return ALLOWED_TEXT_EXTENSIONS.includes(ext);
+};
+
+// 텍스트 파일 타입 검증
+const validateTextFileType = (mimetype, filename) => {
+  return isAllowedTextMimeType(mimetype) && isAllowedTextExtension(filename);
+};
+
+// 텍스트 파일 크기 검증
+const validateTextFileSize = (size) => {
+  return size <= MAX_TEXT_FILE_SIZE;
+};
+
 module.exports = {
   UPLOAD_DIR,
   IMAGES_DIR,
   TEMP_DIR,
+  DOCUMENTS_DIR,
+  DOCUMENTS_TXT_DIR,
+  DOCUMENTS_JSON_DIR,
+  DOCUMENTS_OTHER_DIR,
   ALLOWED_MIME_TYPES,
   ALLOWED_EXTENSIONS,
+  ALLOWED_TEXT_MIME_TYPES,
+  ALLOWED_TEXT_EXTENSIONS,
   MAX_FILE_SIZE,
+  MAX_TEXT_FILE_SIZE,
   ensureDirectoriesExist,
   isAllowedMimeType,
   isAllowedExtension,
+  isAllowedTextMimeType,
+  isAllowedTextExtension,
   validateFileType,
-  validateFileSize
+  validateFileSize,
+  validateTextFileType,
+  validateTextFileSize
 };
 

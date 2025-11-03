@@ -11,6 +11,10 @@ import AnalysisHistory from './pages/AnalysisHistory';
 import MediaUpload from './pages/MediaUpload';
 import MediaGallery from './pages/MediaGallery';
 import ImageAnalysisSummary from './pages/ImageAnalysisSummary';
+import DocumentUpload from './pages/DocumentUpload';
+import DocumentList from './pages/DocumentList';
+import DocumentDetail from './pages/DocumentDetail';
+import DocumentAnalysisResult from './pages/DocumentAnalysisResult';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -105,6 +109,38 @@ function App() {
             element={
               <ProtectedRoute>
                 <ImageAnalysisSummary />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/document-upload" 
+            element={
+              <ProtectedRoute>
+                <DocumentUpload />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/documents" 
+            element={
+              <ProtectedRoute>
+                <DocumentList />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/documents/:id" 
+            element={
+              <ProtectedRoute>
+                <DocumentDetail />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/documents/:id/analysis" 
+            element={
+              <ProtectedRoute>
+                <DocumentAnalysisResult />
               </ProtectedRoute>
             } 
           />

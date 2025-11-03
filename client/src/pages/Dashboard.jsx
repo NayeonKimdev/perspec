@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Brain, History, TrendingUp, Image, Upload, Sparkles, CheckCircle2 } from 'lucide-react';
+import { Brain, History, TrendingUp, Image, Upload, Sparkles, CheckCircle2, FileText } from 'lucide-react';
 import api from '../services/api';
-import { mediaApi } from '../services/api';
+import { mediaApi, documentApi } from '../services/api';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -13,6 +13,8 @@ const Dashboard = () => {
   const [mediaCount, setMediaCount] = useState(0);
   const [recentImages, setRecentImages] = useState([]);
   const [imageAnalysisSummary, setImageAnalysisSummary] = useState(null);
+  const [documentCount, setDocumentCount] = useState(0);
+  const [recentDocuments, setRecentDocuments] = useState([]);
 
   useEffect(() => {
     const checkProfile = async () => {
@@ -57,10 +59,21 @@ const Dashboard = () => {
       }
     };
 
+    const fetchDocuments = async () => {
+      try {
+        const response = await documentApi.getDocumentList({ limit: 3 });
+        setDocumentCount(response.data.total || 0);
+        setRecentDocuments(response.data.documents || []);
+      } catch (error) {
+        console.error('문서 조회 실패:', error);
+      }
+    };
+
     checkProfile();
     fetchLatestAnalysis();
     fetchMedia();
     fetchImageAnalysisSummary();
+    fetchDocuments();
   }, []);
 
   const handleLogout = () => {
@@ -324,6 +337,61 @@ const Dashboard = () => {
                     </div>
                   </div>
                 )}
+
+                {/* 문서 섹션 */}
+                <div className="bg-white rounded-lg shadow p-6 mb-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-lg font-medium text-gray-900 flex items-center gap-2">
+                      <FileText className="w-5 h-5 text-blue-600" />
+                      내 문서
+                    </h2>
+                  </div>
+                  
+                  <div className="mb-4">
+                    {recentDocuments.length === 0 ? (
+                      <div className="text-center py-8">
+                        <FileText className="w-16 h-16 text-gray-300 mx-auto mb-2" />
+                        <p className="text-gray-500 text-sm mb-4">아직 업로드한 문서가 없습니다</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {recentDocuments.slice(0, 3).map((doc) => (
+                          <div
+                            key={doc.id}
+                            onClick={() => navigate(`/documents/${doc.id}`)}
+                            className="p-3 border rounded-lg hover:bg-gray-50 cursor-pointer transition"
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex-1">
+                                <p className="font-medium text-sm text-gray-800">{doc.file_name}</p>
+                                <p className="text-xs text-gray-500 mt-1 line-clamp-1">
+                                  {doc.content_preview || '내용 미리보기 없음'}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex gap-4">
+                    <button
+                      onClick={() => navigate('/documents')}
+                      className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition font-medium flex items-center justify-center gap-2"
+                    >
+                      <FileText className="w-4 h-4" />
+                      전체 보기 ({documentCount}개)
+                    </button>
+                    <button
+                      onClick={() => navigate('/document-upload')}
+                      className="flex items-center gap-2 px-4 py-2 border-2 border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition font-medium"
+                    >
+                      <Upload className="w-4 h-4" />
+                      문서 업로드
+                    </button>
+                  </div>
+                </div>
 
                 {/* 대시보드 개요 */}
                 <div className="bg-gray-50 rounded-lg p-6">

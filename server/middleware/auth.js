@@ -53,6 +53,14 @@ const authMiddleware = async (req, res, next) => {
       });
     }
 
+    // 데이터베이스 연결 오류 처리
+    if (error.name === 'SequelizeConnectionError' || error.name === 'SequelizeConnectionRefusedError') {
+      console.error('인증 미들웨어 - 데이터베이스 연결 오류:', error.message);
+      return res.status(503).json({
+        message: '데이터베이스 연결이 필요합니다.'
+      });
+    }
+
     console.error('인증 미들웨어 에러:', error);
     res.status(500).json({
       message: '서버 내부 오류가 발생했습니다.'

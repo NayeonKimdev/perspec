@@ -1,9 +1,10 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Upload, X, Check, AlertCircle } from 'lucide-react';
+import { Upload, X, Check, AlertCircle, Camera, FileImage } from 'lucide-react';
 import { mediaApi } from '../services/api';
 
 const MediaUpload = () => {
+  const [uploadMode, setUploadMode] = useState('file'); // 'file' or 'camera'
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [previews, setPreviews] = useState([]);
   const [isDragging, setIsDragging] = useState(false);
@@ -12,7 +13,13 @@ const MediaUpload = () => {
   const [uploadStatus, setUploadStatus] = useState([]);
   const [error, setError] = useState(null);
   
+  // 카메라 관련 상태
+  const [stream, setStream] = useState(null);
+  const [cameraError, setCameraError] = useState(null);
+  
   const fileInputRef = useRef(null);
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
   const navigate = useNavigate();
 
   // 파일 선택
@@ -78,6 +85,73 @@ const MediaUpload = () => {
     
     const files = Array.from(e.dataTransfer.files);
     processFiles(files);
+  };
+
+  // 카메라 스트림 시작
+  useEffect(() => {
+    if (uploadMode === 'camera') {
+      startCamera();
+    } else {
+      stopCamera();
+    }
+    
+    return () => {
+      stopCamera();
+    };
+  }, [uploadMode]);
+
+  const startCamera = async () => {
+    try {
+      setCameraError(null);
+      const mediaStream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: 'environment' } // 후면 카메라 우선
+      });
+      setStream(mediaStream);
+      if (videoRef.current) {
+        videoRef.current.srcObject = mediaStream;
+      }
+    } catch (err) {
+      console.error('카메라 접근 오류:', err);
+      setCameraError('카메라에 접근할 수 없습니다. 브라우저 권한을 확인해주세요.');
+    }
+  };
+
+  const stopCamera = () => {
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      setStream(null);
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+  };
+
+  // 사진 촬영
+  const capturePhoto = () => {
+    if (!videoRef.current || !canvasRef.current) return;
+
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+
+    // 캔버스 크기를 비디오 크기에 맞춤
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    // 비디오 프레임을 캔버스에 그리기
+    ctx.drawImage(video, 0, 0);
+
+    // 캔버스를 Blob으로 변환
+    canvas.toBlob((blob) => {
+      if (blob) {
+        // Blob을 File 객체로 변환
+        const timestamp = new Date().getTime();
+        const file = new File([blob], `photo_${timestamp}.jpg`, { type: 'image/jpeg' });
+        
+        // 파일 목록에 추가
+        processFiles([file]);
+      }
+    }, 'image/jpeg', 0.9);
   };
 
   // 파일 제거
@@ -158,7 +232,74 @@ const MediaUpload = () => {
       <div className="max-w-4xl mx-auto">
         <h1 className="text-3xl font-bold text-gray-900 mb-8">이미지 업로드</h1>
 
-        {/* 드래그 앤 드롭 영역 */}
+        {/* 업로드 모드 선택 탭 */}
+        <div className="flex gap-4 mb-6 border-b">
+          <button
+            onClick={() => setUploadMode('file')}
+            className={`px-6 py-3 font-semibold transition-colors border-b-2 ${
+              uploadMode === 'file'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <FileImage className="w-5 h-5 inline-block mr-2" />
+            파일 업로드
+          </button>
+          <button
+            onClick={() => setUploadMode('camera')}
+            className={`px-6 py-3 font-semibold transition-colors border-b-2 ${
+              uploadMode === 'camera'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <Camera className="w-5 h-5 inline-block mr-2" />
+            카메라 촬영
+          </button>
+        </div>
+
+        {/* 카메라 모드 */}
+        {uploadMode === 'camera' && (
+          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 className="text-xl font-semibold mb-4">카메라로 사진 촬영</h2>
+            
+            {cameraError ? (
+              <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-red-600">{cameraError}</p>
+                <button
+                  onClick={startCamera}
+                  className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  다시 시도
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="relative bg-black rounded-lg overflow-hidden">
+                  <video
+                    ref={videoRef}
+                    autoPlay
+                    playsInline
+                    className="w-full max-h-96 object-contain"
+                  />
+                  <canvas ref={canvasRef} className="hidden" />
+                </div>
+                <div className="flex justify-center gap-4">
+                  <button
+                    onClick={capturePhoto}
+                    className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold flex items-center gap-2"
+                  >
+                    <Camera className="w-5 h-5" />
+                    사진 촬영
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 파일 업로드 모드 - 드래그 앤 드롭 영역 */}
+        {uploadMode === 'file' && (
         <div
           className={`relative border-2 border-dashed rounded-lg p-12 text-center transition-all ${
             isDragging
@@ -194,6 +335,7 @@ const MediaUpload = () => {
             </button>
           </div>
         </div>
+        )}
 
         {/* 에러 메시지 */}
         {error && (

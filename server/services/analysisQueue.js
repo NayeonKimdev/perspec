@@ -1,17 +1,30 @@
 const Media = require('../models/Media');
+const TextDocument = require('../models/TextDocument');
 const visionService = require('./visionService');
+const textAnalysisService = require('./textAnalysisService');
 
 let isProcessing = false;
 let processingQueue = [];
 const PROCESSING_INTERVAL = 3000; // 3초마다 큐 확인
 
 /**
- * 큐에 미디어 ID 추가
+ * 큐에 항목 추가
+ * @param {string|Object} item - mediaId 문자열 또는 { type: 'image'|'text', id: string } 객체
  */
-const addToQueue = (mediaId) => {
-  if (!processingQueue.includes(mediaId)) {
-    processingQueue.push(mediaId);
-    console.log(`[분석 큐] 추가됨: ${mediaId}`);
+const addToQueue = (item) => {
+  // 이전 버전 호환성: 문자열인 경우 이미지로 처리
+  const queueItem = typeof item === 'string' 
+    ? { type: 'image', id: item }
+    : item;
+
+  // 중복 확인
+  const exists = processingQueue.some(
+    q => q.type === queueItem.type && q.id === queueItem.id
+  );
+
+  if (!exists) {
+    processingQueue.push(queueItem);
+    console.log(`[분석 큐] 추가됨: ${queueItem.type} - ${queueItem.id}`);
   }
 };
 
@@ -29,15 +42,17 @@ const getNextFromQueue = () => {
   if (processingQueue.length === 0) {
     return null;
   }
-  return processingQueue.shift();
+  const item = processingQueue.shift();
+  // 이전 버전 호환성: 문자열인 경우 객체로 변환
+  return typeof item === 'string' ? { type: 'image', id: item } : item;
 };
 
 /**
- * 단일 미디어 분석 처리
+ * 이미지 미디어 분석 처리
  */
-const processMedia = async (mediaId) => {
+const processImageMedia = async (mediaId) => {
   try {
-    console.log(`[분석 시작] Media ID: ${mediaId}`);
+    console.log(`[이미지 분석 시작] Media ID: ${mediaId}`);
     
     // 미디어 조회
     const media = await Media.findByPk(mediaId);
@@ -107,6 +122,91 @@ const processMedia = async (mediaId) => {
 };
 
 /**
+ * 텍스트 문서 분석 처리
+ */
+const processTextDocument = async (documentId) => {
+  try {
+    console.log(`[텍스트 분석 시작] Document ID: ${documentId}`);
+    
+    // 문서 조회
+    const document = await TextDocument.findByPk(documentId);
+    
+    if (!document) {
+      console.error(`[분석 실패] Document ID ${documentId}를 찾을 수 없습니다.`);
+      return;
+    }
+    
+    // 이미 완료된 경우 스킵
+    if (document.analysis_status === 'completed') {
+      console.log(`[분석 스킵] Document ID ${documentId}는 이미 완료되었습니다.`);
+      return;
+    }
+    
+    // analyzing 상태인 경우, 오래된 분석인지 확인 (30분 이상)
+    if (document.analysis_status === 'analyzing') {
+      const now = new Date();
+      const updatedAt = new Date(document.updated_at);
+      const diffMinutes = (now - updatedAt) / (1000 * 60);
+      
+      // 30분 이상 analyzing 상태면 재시도
+      if (diffMinutes > 30) {
+        console.log(`[분석 재시도] Document ID ${documentId}가 ${Math.round(diffMinutes)}분 동안 analyzing 상태입니다. 재시도합니다.`);
+      } else {
+        console.log(`[분석 스킵] Document ID ${documentId}는 현재 처리 중입니다.`);
+        return;
+      }
+    }
+    
+    // 상태를 'analyzing'으로 변경
+    await document.update({ 
+      analysis_status: 'analyzing',
+      analysis_error: null 
+    });
+    
+    // 텍스트 분석 실행
+    const analysisResult = await textAnalysisService.analyzeTextDocument(
+      document.content,
+      document.document_type
+    );
+    
+    // 결과 저장
+    await document.update({
+      analysis_status: 'completed',
+      analysis_result: analysisResult,
+      analyzed_at: new Date(),
+      analysis_error: null
+    });
+    
+    console.log(`[분석 완료] Document ID: ${documentId}`);
+    
+  } catch (error) {
+    console.error(`[분석 실패] Document ID ${documentId}:`, error.message);
+    
+    // 문서를 다시 조회하여 에러 정보 업데이트
+    const document = await TextDocument.findByPk(documentId);
+    if (document) {
+      await document.update({
+        analysis_status: 'failed',
+        analysis_error: error.message,
+        analyzed_at: new Date()
+      });
+    }
+  }
+};
+
+/**
+ * 단일 항목 분석 처리 (이미지 또는 텍스트)
+ */
+const processItem = async (queueItem) => {
+  if (queueItem.type === 'text') {
+    await processTextDocument(queueItem.id);
+  } else {
+    // 기본값 또는 이전 버전 호환성: 이미지로 처리
+    await processImageMedia(queueItem.id);
+  }
+};
+
+/**
  * 큐 처리
  */
 const processQueue = async () => {
@@ -124,11 +224,13 @@ const processQueue = async () => {
   isProcessing = true;
   
   try {
-    const mediaId = getNextFromQueue();
+    const queueItem = getNextFromQueue();
     
-    if (mediaId) {
-      console.log(`[큐 처리] Media ID ${mediaId} 처리 시작 (남은 큐 길이: ${processingQueue.length})`);
-      await processMedia(mediaId);
+    if (queueItem) {
+      const itemType = queueItem.type || 'image';
+      const itemId = queueItem.id;
+      console.log(`[큐 처리] ${itemType} - ${itemId} 처리 시작 (남은 큐 길이: ${processingQueue.length})`);
+      await processItem(queueItem);
     } else {
       console.log('[큐 처리] 큐에서 항목을 가져올 수 없습니다.');
     }
@@ -163,34 +265,54 @@ const startProcessing = () => {
 };
 
 /**
- * 대기 중인 모든 미디어를 큐에 추가
+ * 대기 중인 모든 미디어와 문서를 큐에 추가
  * 서버 시작 시 미완료 항목들을 복구할 때 사용
  */
 const restorePendingItems = async () => {
   try {
+    // 미완료 이미지 미디어 조회
     const pendingMedias = await Media.findAll({
       where: {
         analysis_status: ['pending', 'analyzing']
       }
     });
     
-    console.log(`[분석 큐] ${pendingMedias.length}개의 미완료 항목 발견`);
+    // 미완료 텍스트 문서 조회
+    const pendingDocuments = await TextDocument.findAll({
+      where: {
+        analysis_status: ['pending', 'analyzing']
+      }
+    });
     
-    if (pendingMedias.length === 0) {
+    const totalPending = pendingMedias.length + pendingDocuments.length;
+    console.log(`[분석 큐] ${totalPending}개의 미완료 항목 발견 (이미지: ${pendingMedias.length}, 텍스트: ${pendingDocuments.length})`);
+    
+    if (totalPending === 0) {
       console.log('[분석 큐] 복구할 항목이 없습니다.');
       return;
     }
     
+    // 이미지 미디어 복구
     for (const media of pendingMedias) {
       // analyzing 상태를 pending으로 복구
       if (media.analysis_status === 'analyzing') {
         console.log(`[분석 큐] Media ID ${media.id}의 상태를 analyzing에서 pending으로 복구`);
         await media.update({ analysis_status: 'pending' });
       }
-      addToQueue(media.id);
+      addToQueue({ type: 'image', id: media.id });
     }
     
-    console.log(`[분석 큐] 미완료 항목 ${pendingMedias.length}개를 큐에 추가했습니다.`);
+    // 텍스트 문서 복구
+    for (const document of pendingDocuments) {
+      // analyzing 상태를 pending으로 복구
+      if (document.analysis_status === 'analyzing') {
+        console.log(`[분석 큐] Document ID ${document.id}의 상태를 analyzing에서 pending으로 복구`);
+        await document.update({ analysis_status: 'pending' });
+      }
+      addToQueue({ type: 'text', id: document.id });
+    }
+    
+    console.log(`[분석 큐] 미완료 항목 ${totalPending}개를 큐에 추가했습니다.`);
     console.log(`[분석 큐] 현재 큐 길이: ${processingQueue.length}`);
   } catch (error) {
     console.error('[분석 큐 복구 에러]:', error);
