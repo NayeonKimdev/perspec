@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Brain, History, TrendingUp, Image, Upload } from 'lucide-react';
+import { Brain, History, TrendingUp, Image, Upload, Sparkles, CheckCircle2 } from 'lucide-react';
 import api from '../services/api';
 import { mediaApi } from '../services/api';
 
@@ -12,6 +12,7 @@ const Dashboard = () => {
   const [latestAnalysis, setLatestAnalysis] = useState(null);
   const [mediaCount, setMediaCount] = useState(0);
   const [recentImages, setRecentImages] = useState([]);
+  const [imageAnalysisSummary, setImageAnalysisSummary] = useState(null);
 
   useEffect(() => {
     const checkProfile = async () => {
@@ -47,9 +48,19 @@ const Dashboard = () => {
       }
     };
 
+    const fetchImageAnalysisSummary = async () => {
+      try {
+        const response = await mediaApi.getAnalysisSummary();
+        setImageAnalysisSummary(response.data.summary);
+      } catch (error) {
+        console.error('이미지 분석 요약 조회 실패:', error);
+      }
+    };
+
     checkProfile();
     fetchLatestAnalysis();
     fetchMedia();
+    fetchImageAnalysisSummary();
   }, []);
 
   const handleLogout = () => {
@@ -209,7 +220,7 @@ const Dashboard = () => {
                     </h2>
                   </div>
                   
-                  <div className="grid grid-cols-3 gap-4 mb-4">
+                  <div className="grid grid-cols-3 gap-3 mb-4">
                     {recentImages.length === 0 ? (
                       <div className="col-span-3 text-center py-8">
                         <Image className="w-16 h-16 text-gray-300 mx-auto mb-2" />
@@ -220,13 +231,14 @@ const Dashboard = () => {
                         {recentImages.slice(0, 3).map((image) => (
                           <div
                             key={image.id}
-                            className="aspect-square bg-gray-100 rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition"
+                            className="relative aspect-square bg-gray-100 rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition"
                             onClick={() => navigate('/gallery')}
                           >
                             <img
                               src={image.file_url}
                               alt={image.file_name}
                               className="w-full h-full object-cover"
+                              style={{ minHeight: '120px', maxHeight: '120px' }}
                             />
                           </div>
                         ))}
@@ -251,6 +263,67 @@ const Dashboard = () => {
                     </button>
                   </div>
                 </div>
+
+                {/* 이미지 분석 요약 위젯 */}
+                {imageAnalysisSummary && imageAnalysisSummary.analyzed_images > 0 && (
+                  <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg shadow-md p-6 mb-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                        <Sparkles className="w-5 h-5 text-purple-600" />
+                        이미지 분석 현황
+                      </h2>
+                      <button
+                        onClick={() => navigate('/image-analysis-summary')}
+                        className="text-sm text-purple-600 hover:text-purple-700 font-medium"
+                      >
+                        전체 요약 보기 →
+                      </button>
+                    </div>
+                    
+                    <div className="flex items-center gap-4 mb-4">
+                      <div className="flex items-center gap-2 bg-green-100 px-3 py-2 rounded-lg">
+                        <CheckCircle2 className="w-4 h-4 text-green-600" />
+                        <span className="text-sm font-semibold text-green-700">
+                          분석 완료: {imageAnalysisSummary.analyzed_images}개
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 bg-gray-100 px-3 py-2 rounded-lg">
+                        <span className="text-sm font-semibold text-gray-700">
+                          대기 중: {imageAnalysisSummary.pending_images}개
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* 주요 관심사 */}
+                    {imageAnalysisSummary.top_interests && imageAnalysisSummary.top_interests.length > 0 && (
+                      <div className="bg-white rounded-lg p-4 mb-4">
+                        <h3 className="text-sm font-semibold text-gray-700 mb-2">주요 관심사 Top 3</h3>
+                        <div className="flex flex-wrap gap-2">
+                          {imageAnalysisSummary.top_interests.slice(0, 3).map((item, idx) => (
+                            <span key={idx} className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold">
+                              {item.interest}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex gap-4">
+                      <button
+                        onClick={() => navigate('/image-analysis-summary')}
+                        className="flex-1 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition font-medium"
+                      >
+                        전체 분석 요약 보기
+                      </button>
+                      <button
+                        onClick={() => navigate('/gallery')}
+                        className="px-4 py-2 border-2 border-purple-600 text-purple-600 rounded-lg hover:bg-purple-50 transition font-medium"
+                      >
+                        갤러리
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {/* 대시보드 개요 */}
                 <div className="bg-gray-50 rounded-lg p-6">

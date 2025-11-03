@@ -109,6 +109,31 @@ app.use('*', (req, res) => {
   res.status(404).json({ message: '요청한 리소스를 찾을 수 없습니다.' });
 });
 
+// 분석 큐 초기화 및 시작
+try {
+  console.log('[서버 시작] 분석 큐 모듈 로드 시도...');
+  const analysisQueue = require('./services/analysisQueue');
+  console.log('[서버 시작] 분석 큐 모듈 로드 성공');
+  
+  // 비동기 초기화를 서버 시작 후에 실행
+  setTimeout(async () => {
+    try {
+      console.log('[서버 시작] 분석 큐 초기화 시작...');
+      await analysisQueue.restorePendingItems();
+      console.log('[서버 시작] 분석 큐 복구 완료, 처리 시작...');
+      analysisQueue.startProcessing();
+      console.log('✓ 이미지 분석 큐가 시작되었습니다.');
+    } catch (error) {
+      console.error('✗ 이미지 분석 큐 시작 실패:', error.message);
+      console.error('✗ 에러 스택:', error.stack);
+    }
+  }, 2000); // 서버가 완전히 시작된 후 2초 뒤에 초기화
+  
+} catch (error) {
+  console.log('✗ 이미지 분석 큐를 로드할 수 없습니다:', error.message);
+  console.log('✗ 에러 스택:', error.stack);
+}
+
 app.listen(PORT, () => {
   console.log(`서버가 포트 ${PORT}에서 실행 중입니다.`);
 });

@@ -10,6 +10,7 @@ import AnalysisResult from './pages/AnalysisResult';
 import AnalysisHistory from './pages/AnalysisHistory';
 import MediaUpload from './pages/MediaUpload';
 import MediaGallery from './pages/MediaGallery';
+import ImageAnalysisSummary from './pages/ImageAnalysisSummary';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -96,6 +97,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <MediaGallery />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/image-analysis-summary" 
+            element={
+              <ProtectedRoute>
+                <ImageAnalysisSummary />
               </ProtectedRoute>
             } 
           />

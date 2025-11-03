@@ -39,6 +39,15 @@ const Analysis = sequelize.define('Analysis', {
     type: DataTypes.TEXT,
     allowNull: true
   },
+  is_enhanced: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+    allowNull: false
+  },
+  image_analysis_summary: {
+    type: DataTypes.JSONB,
+    allowNull: true
+  },
   created_at: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW

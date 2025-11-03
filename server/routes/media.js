@@ -19,5 +19,17 @@ router.get('/list', mediaController.getMediaList);
 // 특정 미디어 삭제
 router.delete('/:id', mediaController.deleteMedia);
 
+// 특정 미디어의 분석 상태 조회
+router.get('/:id/analysis', mediaController.getAnalysisStatus);
+
+// 모든 이미지 분석 결과 종합
+router.get('/analysis-summary', mediaController.getAnalysisSummary);
+
+// 특정 이미지 재분석 요청
+router.post('/:id/retry-analysis', mediaController.retryAnalysis);
+
+// 실패한 모든 이미지 재분석 요청
+router.post('/retry-all-failed-analysis', mediaController.retryAllFailedAnalysis);
+
 module.exports = router;
 

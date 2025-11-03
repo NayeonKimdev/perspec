@@ -41,6 +41,24 @@ const Media = sequelize.define('Media', {
     allowNull: true,
     defaultValue: {}
   },
+  analysis_status: {
+    type: DataTypes.ENUM('pending', 'analyzing', 'completed', 'failed'),
+    defaultValue: 'pending',
+    allowNull: false
+  },
+  analysis_result: {
+    type: DataTypes.JSONB,
+    allowNull: true,
+    defaultValue: null
+  },
+  analyzed_at: {
+    type: DataTypes.DATE,
+    allowNull: true
+  },
+  analysis_error: {
+    type: DataTypes.TEXT,
+    allowNull: true
+  },
   created_at: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW
@@ -60,6 +78,9 @@ const Media = sequelize.define('Media', {
     },
     {
       fields: ['created_at']
+    },
+    {
+      fields: ['analysis_status']
     }
   ]
 });

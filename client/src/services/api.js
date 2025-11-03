@@ -76,6 +76,34 @@ export const mediaApi = {
   // 미디어 삭제
   deleteMedia: (id) => {
     return api.delete(`/media/${id}`);
+  },
+
+  // 특정 미디어의 분석 상태 조회
+  getAnalysisStatus: (id) => {
+    return api.get(`/media/${id}/analysis`);
+  },
+
+  // 모든 이미지 분석 결과 종합
+  getAnalysisSummary: () => {
+    return api.get('/media/analysis-summary');
+  },
+
+  // 재분석 요청
+  retryAnalysis: (id) => {
+    return api.post(`/media/${id}/retry-analysis`);
+  },
+
+  // 일괄 재분석 요청
+  retryAllFailedAnalysis: () => {
+    return api.post('/media/retry-all-failed-analysis');
+  }
+};
+
+// 분석 관련 API
+export const analysisApi = {
+  // 통합 분석 생성 (프로필 + 이미지)
+  createEnhancedAnalysis: () => {
+    return api.post('/analysis/create-enhanced');
   }
 };
 

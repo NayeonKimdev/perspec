@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { createAnalysis, getHistory, getAnalysisById } = require('../controllers/analysisController');
+const { createAnalysis, createEnhancedAnalysis, getHistory, getAnalysisById } = require('../controllers/analysisController');
 const auth = require('../middleware/auth');
 
 // 모든 분석 라우트는 인증 필요
@@ -12,6 +12,7 @@ router.get('/health', (req, res) => {
     status: 'ok',
     routes: {
       create: 'POST /api/analysis/create',
+      createEnhanced: 'POST /api/analysis/create-enhanced',
       history: 'GET /api/analysis/history',
       getById: 'GET /api/analysis/:id'
     }
@@ -20,6 +21,9 @@ router.get('/health', (req, res) => {
 
 // 분석 생성
 router.post('/create', createAnalysis);
+
+// 향상된 분석 생성 (프로필 + 이미지)
+router.post('/create-enhanced', createEnhancedAnalysis);
 
 // 분석 히스토리 조회
 router.get('/history', getHistory);

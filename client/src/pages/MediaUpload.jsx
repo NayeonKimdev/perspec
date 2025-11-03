@@ -212,11 +212,12 @@ const MediaUpload = () => {
             <h2 className="text-xl font-semibold text-gray-900 mb-4">선택된 이미지</h2>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {previews.map((preview, index) => (
-                <div key={index} className="relative group">
+                <div key={index} className="relative group aspect-square bg-gray-100 rounded-lg overflow-hidden">
                   <img
                     src={preview.url}
                     alt={preview.file}
-                    className="w-full h-48 object-cover rounded-lg"
+                    className="w-full h-full object-cover"
+                    style={{ minHeight: '150px', maxHeight: '150px' }}
                   />
                   
                   {/* 업로드 상태 표시 */}
