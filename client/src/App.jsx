@@ -15,6 +15,12 @@ import DocumentUpload from './pages/DocumentUpload';
 import DocumentList from './pages/DocumentList';
 import DocumentDetail from './pages/DocumentDetail';
 import DocumentAnalysisResult from './pages/DocumentAnalysisResult';
+import MBTIEstimation from './pages/MBTIEstimation';
+import MBTIResult from './pages/MBTIResult';
+import EmotionAnalysis from './pages/EmotionAnalysis';
+import ReportGeneration from './pages/ReportGeneration';
+import ReportDetail from './pages/ReportDetail';
+import Analytics from './pages/Analytics';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -141,6 +147,54 @@ function App() {
             element={
               <ProtectedRoute>
                 <DocumentAnalysisResult />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/mbti" 
+            element={
+              <ProtectedRoute>
+                <MBTIEstimation />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/mbti/:id" 
+            element={
+              <ProtectedRoute>
+                <MBTIResult />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/emotion" 
+            element={
+              <ProtectedRoute>
+                <EmotionAnalysis />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/reports" 
+            element={
+              <ProtectedRoute>
+                <ReportGeneration />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/reports/:id" 
+            element={
+              <ProtectedRoute>
+                <ReportDetail />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/analytics" 
+            element={
+              <ProtectedRoute>
+                <Analytics />
               </ProtectedRoute>
             } 
           />

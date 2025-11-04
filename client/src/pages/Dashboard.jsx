@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Brain, History, TrendingUp, Image, Upload, Sparkles, CheckCircle2, FileText } from 'lucide-react';
+import { Brain, History, TrendingUp, Image, Upload, Sparkles, CheckCircle2, FileText, Heart, UserCircle, BarChart3 } from 'lucide-react';
 import api from '../services/api';
-import { mediaApi, documentApi } from '../services/api';
+import { mediaApi, documentApi, mbtiApi, emotionApi, reportApi } from '../services/api';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -15,6 +15,10 @@ const Dashboard = () => {
   const [imageAnalysisSummary, setImageAnalysisSummary] = useState(null);
   const [documentCount, setDocumentCount] = useState(0);
   const [recentDocuments, setRecentDocuments] = useState([]);
+  const [latestMBTI, setLatestMBTI] = useState(null);
+  const [latestEmotion, setLatestEmotion] = useState(null);
+  const [reportsCount, setReportsCount] = useState(0);
+  const [analysisCount, setAnalysisCount] = useState(0);
 
   useEffect(() => {
     const checkProfile = async () => {
@@ -37,6 +41,16 @@ const Dashboard = () => {
         }
       } catch (error) {
         console.error('최근 분석 조회 실패:', error);
+      }
+    };
+
+    const fetchAnalysisCount = async () => {
+      try {
+        const response = await api.get('/analysis/history');
+        setAnalysisCount(response.data.total || response.data.analyses?.length || 0);
+      } catch (error) {
+        console.error('분석 개수 조회 실패:', error);
+        setAnalysisCount(0);
       }
     };
 
@@ -69,11 +83,46 @@ const Dashboard = () => {
       }
     };
 
+    const fetchMBTI = async () => {
+      try {
+        const response = await mbtiApi.getHistory();
+        if (response.data.estimations && response.data.estimations.length > 0) {
+          const latestId = response.data.estimations[0].id;
+          const detailRes = await mbtiApi.getEstimationById(latestId);
+          setLatestMBTI(detailRes.data.estimation);
+        }
+      } catch (error) {
+        // MBTI가 없을 수 있으므로 에러는 무시
+      }
+    };
+
+    const fetchEmotion = async () => {
+      try {
+        const response = await emotionApi.getLatestAnalysis();
+        setLatestEmotion(response.data.analysis);
+      } catch (error) {
+        // 감정 분석이 없을 수 있으므로 에러는 무시
+      }
+    };
+
+    const fetchReports = async () => {
+      try {
+        const response = await reportApi.getReportList();
+        setReportsCount(response.data.reports?.length || 0);
+      } catch (error) {
+        // 에러 무시
+      }
+    };
+
     checkProfile();
     fetchLatestAnalysis();
+    fetchAnalysisCount();
     fetchMedia();
     fetchImageAnalysisSummary();
     fetchDocuments();
+    fetchMBTI();
+    fetchEmotion();
+    fetchReports();
   }, []);
 
   const handleLogout = () => {
@@ -393,36 +442,310 @@ const Dashboard = () => {
                   </div>
                 </div>
 
+                {/* 프로필 완성도 */}
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6 mb-6">
+                  <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                    프로필 완성도
+                  </h2>
+                  <div className="space-y-3">
+                    <div>
+                      <div className="flex justify-between mb-1">
+                        <span className="text-sm text-gray-700">프로필 작성</span>
+                        <span className="text-sm text-gray-600">{hasProfile ? '25%' : '0%'}</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                          className="bg-blue-600 h-2 rounded-full transition-all duration-500"
+                          style={{ width: hasProfile ? '25%' : '0%' }}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex justify-between mb-1">
+                        <span className="text-sm text-gray-700">이미지 업로드</span>
+                        <span className="text-sm text-gray-600">{Math.min(mediaCount * 2.5, 25).toFixed(0)}%</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                          className="bg-purple-600 h-2 rounded-full transition-all duration-500"
+                          style={{ width: `${Math.min(mediaCount * 2.5, 25)}%` }}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex justify-between mb-1">
+                        <span className="text-sm text-gray-700">문서 업로드</span>
+                        <span className="text-sm text-gray-600">{Math.min(documentCount * 2.5, 25).toFixed(0)}%</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                          className="bg-green-600 h-2 rounded-full transition-all duration-500"
+                          style={{ width: `${Math.min(documentCount * 2.5, 25)}%` }}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex justify-between mb-1">
+                        <span className="text-sm text-gray-700">분석 완료</span>
+                        <span className="text-sm text-gray-600">{Math.min(analysisCount * 2.5, 25).toFixed(0)}%</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                          className="bg-orange-600 h-2 rounded-full transition-all duration-500"
+                          style={{ width: `${Math.min(analysisCount * 2.5, 25)}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-4 pt-4 border-t border-gray-300">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-semibold text-gray-900">전체 완성도</span>
+                      <span className="text-2xl font-bold text-indigo-600">
+                        {Math.min(
+                          (hasProfile ? 25 : 0) + 
+                          Math.min(mediaCount * 2.5, 25) + 
+                          Math.min(documentCount * 2.5, 25) + 
+                          Math.min(analysisCount * 2.5, 25),
+                          100
+                        ).toFixed(0)}%
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* MBTI 결과 카드 */}
+                {latestMBTI ? (
+                  <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-lg shadow-lg p-6 mb-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                        <UserCircle className="w-5 h-5 text-purple-600" />
+                        MBTI 성격 유형
+                      </h2>
+                      <button
+                        onClick={() => navigate(`/mbti/${latestMBTI.id}`)}
+                        className="text-sm text-purple-600 hover:text-purple-700 font-medium"
+                      >
+                        자세히 보기 →
+                      </button>
+                    </div>
+                    <div className="bg-white rounded-lg p-4 mb-3">
+                      <div className="text-center">
+                        <p className="text-4xl font-bold text-purple-600 mb-2">
+                          {latestMBTI.mbti_type}
+                        </p>
+                        <p className="text-gray-600 text-sm mb-2">
+                          {latestMBTI.description || 'MBTI 분석 결과'}
+                        </p>
+                        <div className="inline-flex items-center space-x-2 px-3 py-1 bg-gray-100 rounded-full">
+                          <span className="text-gray-600 text-xs">신뢰도:</span>
+                          <span className="text-purple-600 font-semibold">{latestMBTI.confidence}%</span>
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => navigate('/mbti')}
+                      className="w-full bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition font-medium"
+                    >
+                      MBTI 다시 분석하기
+                    </button>
+                  </div>
+                ) : (
+                  <div className="bg-white rounded-lg shadow p-6 mb-6">
+                    <h2 className="text-lg font-medium text-gray-900 mb-3 flex items-center gap-2">
+                      <UserCircle className="w-5 h-5 text-purple-600" />
+                      MBTI 분석
+                    </h2>
+                    <p className="text-sm text-gray-600 mb-4">
+                      아직 MBTI 분석을 하지 않았습니다. 분석하면 성격 유형을 확인할 수 있습니다.
+                    </p>
+                    <button
+                      onClick={() => navigate('/mbti')}
+                      className="w-full bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition font-medium"
+                    >
+                      MBTI 분석하기 →
+                    </button>
+                  </div>
+                )}
+
+                {/* 감정 건강 점수 카드 */}
+                {latestEmotion ? (
+                  <div className="bg-gradient-to-br from-pink-50 to-rose-50 rounded-lg shadow-lg p-6 mb-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                        <Heart className="w-5 h-5 text-pink-600" />
+                        감정 건강 점수
+                      </h2>
+                      <button
+                        onClick={() => navigate('/emotion')}
+                        className="text-sm text-pink-600 hover:text-pink-700 font-medium"
+                      >
+                        자세히 보기 →
+                      </button>
+                    </div>
+                    <div className="bg-white rounded-lg p-4 mb-3">
+                      <div className="text-center">
+                        <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-gradient-to-br from-pink-100 to-rose-100 mb-3">
+                          <span className={`text-3xl font-bold ${
+                            latestEmotion.health_score >= 75 ? 'text-green-600' :
+                            latestEmotion.health_score >= 50 ? 'text-yellow-600' : 'text-red-600'
+                          }`}>
+                            {latestEmotion.health_score}
+                          </span>
+                        </div>
+                        <p className="text-gray-600 text-sm">
+                          안정성: {latestEmotion.stability_score}점
+                        </p>
+                        <p className="text-gray-500 text-xs mt-2">
+                          긍정 {latestEmotion.positive_ratio}% / 부정 {latestEmotion.negative_ratio}%
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => navigate('/emotion')}
+                      className="w-full bg-pink-600 text-white px-4 py-2 rounded-lg hover:bg-pink-700 transition font-medium"
+                    >
+                      감정 분석 다시하기
+                    </button>
+                  </div>
+                ) : (
+                  <div className="bg-white rounded-lg shadow p-6 mb-6">
+                    <h2 className="text-lg font-medium text-gray-900 mb-3 flex items-center gap-2">
+                      <Heart className="w-5 h-5 text-pink-600" />
+                      감정 분석
+                    </h2>
+                    <p className="text-sm text-gray-600 mb-4">
+                      이미지를 업로드하면 더 정확한 감정 분석이 가능합니다.
+                    </p>
+                    <button
+                      onClick={() => navigate('/emotion')}
+                      className="w-full bg-pink-600 text-white px-4 py-2 rounded-lg hover:bg-pink-700 transition font-medium"
+                    >
+                      감정 분석하기 →
+                    </button>
+                  </div>
+                )}
+
+                {/* 종합 레포트 카드 */}
+                <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-lg shadow-lg p-6 mb-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                      <FileText className="w-5 h-5 text-indigo-600" />
+                      종합 분석 레포트
+                    </h2>
+                    {reportsCount > 0 && (
+                      <span className="text-sm text-gray-600">
+                        {reportsCount}개의 레포트
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm text-gray-600 mb-4">
+                    모든 데이터를 종합하여 당신에 대한 완전한 분석 레포트를 생성합니다.
+                  </p>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => navigate('/reports')}
+                      className="flex-1 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition font-medium"
+                    >
+                      레포트 생성
+                    </button>
+                    {reportsCount > 0 && (
+                      <button
+                        onClick={async () => {
+                          try {
+                            const res = await reportApi.getReportList();
+                            if (res.data.reports && res.data.reports.length > 0) {
+                              navigate(`/reports/${res.data.reports[0].id}`);
+                            }
+                          } catch (error) {
+                            navigate('/reports');
+                          }
+                        }}
+                        className="px-4 py-2 border-2 border-indigo-600 text-indigo-600 rounded-lg hover:bg-indigo-50 transition font-medium"
+                      >
+                        최근 레포트 보기
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* 빠른 액션 */}
+                <div className="bg-white rounded-lg shadow p-6 mb-6">
+                  <h2 className="text-lg font-medium text-gray-900 mb-4">
+                    빠른 액션
+                  </h2>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <button
+                      onClick={() => navigate('/profile')}
+                      className="flex flex-col items-center justify-center p-4 border-2 border-gray-200 rounded-lg hover:bg-gray-50 transition"
+                    >
+                      <UserCircle className="w-6 h-6 text-blue-600 mb-2" />
+                      <span className="text-sm text-gray-700">프로필</span>
+                    </button>
+                    <button
+                      onClick={() => navigate('/upload')}
+                      className="flex flex-col items-center justify-center p-4 border-2 border-gray-200 rounded-lg hover:bg-gray-50 transition"
+                    >
+                      <Upload className="w-6 h-6 text-purple-600 mb-2" />
+                      <span className="text-sm text-gray-700">업로드</span>
+                    </button>
+                    <button
+                      onClick={() => navigate('/analytics')}
+                      className="flex flex-col items-center justify-center p-4 border-2 border-gray-200 rounded-lg hover:bg-gray-50 transition"
+                    >
+                      <BarChart3 className="w-6 h-6 text-green-600 mb-2" />
+                      <span className="text-sm text-gray-700">통계</span>
+                    </button>
+                    <button
+                      onClick={() => navigate('/reports')}
+                      className="flex flex-col items-center justify-center p-4 border-2 border-gray-200 rounded-lg hover:bg-gray-50 transition"
+                    >
+                      <FileText className="w-6 h-6 text-indigo-600 mb-2" />
+                      <span className="text-sm text-gray-700">레포트</span>
+                    </button>
+                  </div>
+                </div>
+
                 {/* 대시보드 개요 */}
                 <div className="bg-gray-50 rounded-lg p-6">
                   <h2 className="text-lg font-medium text-gray-900 mb-4">
                     대시보드 개요
                   </h2>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="bg-white rounded-lg p-4 shadow">
                       <div className="flex items-center justify-between mb-2">
-                        <h3 className="text-sm font-medium text-gray-500">프로필 상태</h3>
+                        <h3 className="text-sm font-medium text-gray-500">프로필</h3>
                         <TrendingUp className="w-5 h-5 text-blue-600" />
                       </div>
                       <p className="text-2xl font-bold text-gray-900">
-                        {hasProfile ? '완료' : '미작성'}
+                        {hasProfile ? '✓' : '✗'}
                       </p>
                     </div>
                     <div className="bg-white rounded-lg p-4 shadow">
                       <div className="flex items-center justify-between mb-2">
-                        <h3 className="text-sm font-medium text-gray-500">분석 횟수</h3>
-                        <Brain className="w-5 h-5 text-purple-600" />
+                        <h3 className="text-sm font-medium text-gray-500">MBTI</h3>
+                        <UserCircle className="w-5 h-5 text-purple-600" />
                       </div>
                       <p className="text-2xl font-bold text-gray-900">
-                        {latestAnalysis ? '1+' : '0'}
+                        {latestMBTI ? latestMBTI.mbti_type : '-'}
                       </p>
                     </div>
                     <div className="bg-white rounded-lg p-4 shadow">
                       <div className="flex items-center justify-between mb-2">
-                        <h3 className="text-sm font-medium text-gray-500">현재 상태</h3>
-                        <History className="w-5 h-5 text-green-600" />
+                        <h3 className="text-sm font-medium text-gray-500">감정 점수</h3>
+                        <Heart className="w-5 h-5 text-pink-600" />
                       </div>
-                      <p className="text-2xl font-bold text-gray-900">활성</p>
+                      <p className="text-2xl font-bold text-gray-900">
+                        {latestEmotion ? `${latestEmotion.health_score}` : '-'}
+                      </p>
+                    </div>
+                    <div className="bg-white rounded-lg p-4 shadow">
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="text-sm font-medium text-gray-500">레포트</h3>
+                        <FileText className="w-5 h-5 text-indigo-600" />
+                      </div>
+                      <p className="text-2xl font-bold text-gray-900">
+                        {reportsCount}
+                      </p>
                     </div>
                   </div>
                 </div>
