@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Download, Share2, CheckCircle2, TrendingUp, Lightbulb, Target, AlertTriangle, Briefcase } from 'lucide-react';
 import { reportApi } from '../services/api';
+import { useToast } from '../components/Toast';
 
 const ReportDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const toast = useToast();
   const [loading, setLoading] = useState(true);
   const [report, setReport] = useState(null);
   const [error, setError] = useState(null);
@@ -38,7 +40,7 @@ const ReportDetail = () => {
 
       const element = document.getElementById('report-content');
       if (!element) {
-        alert('레포트 내용을 찾을 수 없습니다.');
+        toast.error('레포트 내용을 찾을 수 없습니다.');
         setDownloading(false);
         return;
       }
@@ -69,9 +71,10 @@ const ReportDetail = () => {
       }
 
       pdf.save(`${report?.title || 'report'}.pdf`);
+      toast.success('PDF 다운로드가 완료되었습니다!');
     } catch (error) {
       console.error('PDF 다운로드 실패:', error);
-      alert('PDF 다운로드 중 오류가 발생했습니다. 브라우저 콘솔을 확인하세요.');
+      toast.error('PDF 다운로드 중 오류가 발생했습니다.');
     } finally {
       setDownloading(false);
     }
@@ -79,7 +82,7 @@ const ReportDetail = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:from-indigo-900/20 dark:via-purple-900/20 dark:to-pink-900/20 flex items-center justify-center transition-colors duration-200">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
           <p className="text-gray-600">레포트를 불러오는 중...</p>
@@ -90,7 +93,7 @@ const ReportDetail = () => {
 
   if (error || !report) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:from-indigo-900/20 dark:via-purple-900/20 dark:to-pink-900/20 flex items-center justify-center transition-colors duration-200">
         <div className="text-center">
           <p className="text-red-600 mb-4">{error || '레포트를 찾을 수 없습니다.'}</p>
           <button
@@ -124,23 +127,23 @@ const ReportDetail = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-5xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:from-indigo-900/20 dark:via-purple-900/20 dark:to-pink-900/20 py-12 px-4 sm:px-6 lg:px-8 transition-colors duration-200">
+      <div className="max-w-5xl mx-auto w-full">
         {/* 헤더 */}
         <div className="mb-8">
           <button
             onClick={() => navigate('/reports')}
-            className="flex items-center space-x-2 text-gray-600 hover:text-gray-800 mb-4"
+            className="flex items-center space-x-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 mb-4"
           >
             <ArrowLeft className="w-5 h-5" />
             <span>돌아가기</span>
           </button>
 
-          <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-6 transition-colors duration-200">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">{report.title}</h1>
-                <p className="text-gray-600">
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">{report.title}</h1>
+                <p className="text-gray-600 dark:text-gray-400">
                   생성일: {new Date(report.created_at).toLocaleDateString('ko-KR', {
                     year: 'numeric',
                     month: 'long',
@@ -161,7 +164,7 @@ const ReportDetail = () => {
                   onClick={() => {
                     const url = window.location.href;
                     navigator.clipboard.writeText(url);
-                    alert('레포트 링크가 복사되었습니다!');
+                    toast.success('레포트 링크가 복사되었습니다!');
                   }}
                   className="flex items-center space-x-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
                 >
@@ -173,8 +176,8 @@ const ReportDetail = () => {
           </div>
 
           {/* 목차 */}
-          <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">목차</h2>
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-6 transition-colors duration-200">
+            <h2 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">목차</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
               {sections.map((section) => {
                 const Icon = section.icon;
@@ -182,9 +185,9 @@ const ReportDetail = () => {
                   <button
                     key={section.id}
                     onClick={() => scrollToSection(section.id)}
-                    className="flex items-center space-x-2 text-left p-2 rounded-lg hover:bg-gray-50 transition-colors text-gray-700"
+                    className="flex items-center space-x-2 text-left p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300"
                   >
-                    <Icon className="w-4 h-4 text-indigo-600" />
+                    <Icon className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                     <span className="text-sm">{section.title}</span>
                   </button>
                 );
@@ -194,15 +197,15 @@ const ReportDetail = () => {
         </div>
 
         {/* 레포트 내용 */}
-        <div id="report-content" className="bg-white rounded-xl shadow-lg p-8 prose prose-lg max-w-none">
+        <div id="report-content" className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 prose prose-lg max-w-none transition-colors duration-200">
           {/* 전체 요약 */}
           {report.summary && (
             <section id="summary" className="mb-12">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center space-x-2">
-                <CheckCircle2 className="w-6 h-6 text-indigo-600" />
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 flex items-center space-x-2">
+                <CheckCircle2 className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
                 <span>전체 요약</span>
               </h2>
-              <div className="text-gray-700 leading-relaxed whitespace-pre-line">
+              <div className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line">
                 {report.summary}
               </div>
             </section>
@@ -211,11 +214,11 @@ const ReportDetail = () => {
           {/* 성격 분석 */}
           {report.personality && (
             <section id="personality" className="mb-12">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center space-x-2">
-                <TrendingUp className="w-6 h-6 text-indigo-600" />
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 flex items-center space-x-2">
+                <TrendingUp className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
                 <span>성격 종합 분석</span>
               </h2>
-              <div className="text-gray-700 leading-relaxed whitespace-pre-line">
+              <div className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line">
                 {report.personality}
               </div>
             </section>
@@ -224,15 +227,15 @@ const ReportDetail = () => {
           {/* 강점 및 재능 */}
           {report.strengths && report.strengths.length > 0 && (
             <section id="strengths" className="mb-12">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center space-x-2">
-                <Lightbulb className="w-6 h-6 text-indigo-600" />
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 flex items-center space-x-2">
+                <Lightbulb className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
                 <span>강점 및 재능</span>
               </h2>
               <ul className="space-y-3">
                 {report.strengths.map((strength, index) => (
                   <li key={index} className="flex items-start space-x-3">
-                    <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0" />
-                    <p className="text-gray-700">{strength}</p>
+                    <div className="w-2 h-2 bg-green-500 dark:bg-green-400 rounded-full mt-2 flex-shrink-0" />
+                    <p className="text-gray-700 dark:text-gray-300">{strength}</p>
                   </li>
                 ))}
               </ul>
@@ -242,15 +245,15 @@ const ReportDetail = () => {
           {/* 개선 영역 */}
           {report.improvements && report.improvements.length > 0 && (
             <section id="improvements" className="mb-12">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center space-x-2">
-                <Target className="w-6 h-6 text-indigo-600" />
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 flex items-center space-x-2">
+                <Target className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
                 <span>개선이 필요한 영역</span>
               </h2>
               <ul className="space-y-3">
                 {report.improvements.map((improvement, index) => (
                   <li key={index} className="flex items-start space-x-3">
-                    <div className="w-2 h-2 bg-yellow-500 rounded-full mt-2 flex-shrink-0" />
-                    <p className="text-gray-700">{improvement}</p>
+                    <div className="w-2 h-2 bg-yellow-500 dark:bg-yellow-400 rounded-full mt-2 flex-shrink-0" />
+                    <p className="text-gray-700 dark:text-gray-300">{improvement}</p>
                   </li>
                 ))}
               </ul>
@@ -260,8 +263,8 @@ const ReportDetail = () => {
           {/* 커리어 제안 */}
           {report.career_suggestions && report.career_suggestions.length > 0 && (
             <section id="career" className="mb-12">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center space-x-2">
-                <Briefcase className="w-6 h-6 text-indigo-600" />
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 flex items-center space-x-2">
+                <Briefcase className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
                 <span>커리어 방향 제안</span>
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -280,8 +283,8 @@ const ReportDetail = () => {
           {/* 라이프스타일 추천 */}
           {report.lifestyle_recommendations && report.lifestyle_recommendations.length > 0 && (
             <section id="lifestyle" className="mb-12">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center space-x-2">
-                <Lightbulb className="w-6 h-6 text-indigo-600" />
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 flex items-center space-x-2">
+                <Lightbulb className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
                 <span>라이프스타일 추천</span>
               </h2>
               <ul className="space-y-3">
@@ -298,8 +301,8 @@ const ReportDetail = () => {
           {/* 관계 스타일 */}
           {report.relationship_style && (
             <section id="relationship" className="mb-12">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center space-x-2">
-                <TrendingUp className="w-6 h-6 text-indigo-600" />
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 flex items-center space-x-2">
+                <TrendingUp className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
                 <span>관계 및 소통 스타일</span>
               </h2>
               <div className="text-gray-700 leading-relaxed whitespace-pre-line">
@@ -311,8 +314,8 @@ const ReportDetail = () => {
           {/* 성장 로드맵 */}
           {report.growth_roadmap && report.growth_roadmap.length > 0 && (
             <section id="roadmap" className="mb-12">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center space-x-2">
-                <Target className="w-6 h-6 text-indigo-600" />
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 flex items-center space-x-2">
+                <Target className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
                 <span>성장 로드맵</span>
               </h2>
               <ol className="space-y-4">

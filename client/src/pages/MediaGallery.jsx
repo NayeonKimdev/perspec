@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useToast } from '../components/Toast';
 import { useNavigate } from 'react-router-dom';
 import { Upload, Trash2, AlertCircle, Loader, CheckCircle, Clock, XCircle, Eye, RefreshCw, Home, BarChart3 } from 'lucide-react';
 import { mediaApi } from '../services/api';
@@ -6,6 +7,7 @@ import ImageModal from '../components/ImageModal';
 import ImageAnalysisModal from '../components/ImageAnalysisModal';
 
 const MediaGallery = () => {
+  const toast = useToast();
   const [media, setMedia] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -118,8 +120,9 @@ const MediaGallery = () => {
       await mediaApi.deleteMedia(id);
       // 목록에서 제거
       setMedia(media.filter(item => item.id !== id));
+      toast.success('이미지가 삭제되었습니다.');
     } catch (err) {
-      alert(err.response?.data?.message || '삭제 중 오류가 발생했습니다');
+      toast.error(err.response?.data?.message || '삭제 중 오류가 발생했습니다');
     } finally {
       setDeletingId(null);
     }
@@ -149,7 +152,7 @@ const MediaGallery = () => {
       setAnalysisData(response.data.analysis);
       setViewingAnalysis(imageItem);
     } catch (err) {
-      alert(err.response?.data?.message || '분석 결과를 불러오는 중 오류가 발생했습니다');
+      toast.error(err.response?.data?.message || '분석 결과를 불러오는 중 오류가 발생했습니다');
     }
   };
 
@@ -205,19 +208,19 @@ const MediaGallery = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12 px-4 transition-colors duration-200">
       {/* 새로고침 인디케이터 */}
       {isRefreshing && (
-        <div className="fixed top-4 right-4 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg z-40 flex items-center gap-2">
+        <div className="fixed top-4 right-4 bg-blue-600 dark:bg-blue-700 text-white px-4 py-2 rounded-lg shadow-lg z-40 flex items-center gap-2">
           <Loader className="w-4 h-4 animate-spin" />
           <span className="text-sm">상태 업데이트 중...</span>
         </div>
       )}
       
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-7xl mx-auto w-full">
         {/* 헤더 */}
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">내 갤러리</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">내 갤러리</h1>
           <div className="flex gap-3">
             <button
               onClick={() => navigate('/dashboard')}
@@ -329,10 +332,10 @@ const MediaGallery = () => {
                           if (window.confirm('이 이미지 분석을 다시 시도하시겠습니까?')) {
                             try {
                               await mediaApi.retryAnalysis(item.id);
-                              alert('재분석이 시작되었습니다.');
+                              toast.success('재분석이 시작되었습니다.');
                               loadMedia();
                             } catch (err) {
-                              alert(err.response?.data?.message || '재분석 요청 중 오류가 발생했습니다');
+                              toast.error(err.response?.data?.message || '재분석 요청 중 오류가 발생했습니다');
                             }
                           }
                         }}

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FileText, Trash2, Eye, Search, Upload, Loader, CheckCircle, Clock, XCircle, AlertCircle, Download } from 'lucide-react';
 import { documentApi } from '../services/api';
+import { useToast } from '../components/Toast';
 
 const DocumentList = () => {
   const [documents, setDocuments] = useState([]);
@@ -16,6 +17,7 @@ const DocumentList = () => {
   const [totalPages, setTotalPages] = useState(1);
   
   const navigate = useNavigate();
+  const toast = useToast();
 
   // 문서 목록 로드
   const loadDocuments = async (preserveScroll = false) => {
@@ -103,8 +105,9 @@ const DocumentList = () => {
       await documentApi.deleteDocument(id);
       setDocuments(documents.filter(item => item.id !== id));
       setTotal(total - 1);
+      toast.success('문서가 삭제되었습니다.');
     } catch (err) {
-      alert(err.response?.data?.message || '삭제 중 오류가 발생했습니다');
+      toast.error(err.response?.data?.message || '삭제 중 오류가 발생했습니다');
     } finally {
       setDeletingId(null);
     }
@@ -123,8 +126,9 @@ const DocumentList = () => {
       document.body.appendChild(link);
       link.click();
       link.remove();
+      toast.success('다운로드가 시작되었습니다.');
     } catch (err) {
-      alert('다운로드 중 오류가 발생했습니다');
+      toast.error('다운로드 중 오류가 발생했습니다');
     }
   };
 

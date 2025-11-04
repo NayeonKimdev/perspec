@@ -2,10 +2,12 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { FileText, ArrowLeft, Trash2, Download, Eye, AlertCircle, Loader } from 'lucide-react';
 import { documentApi } from '../services/api';
+import { useToast } from '../components/Toast';
 
 const DocumentDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const toast = useToast();
   const [document, setDocument] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -36,9 +38,10 @@ const DocumentDetail = () => {
     try {
       setDeleting(true);
       await documentApi.deleteDocument(id);
+      toast.success('문서가 삭제되었습니다.');
       navigate('/documents');
     } catch (err) {
-      alert(err.response?.data?.message || '삭제 중 오류가 발생했습니다');
+      toast.error(err.response?.data?.message || '삭제 중 오류가 발생했습니다');
     } finally {
       setDeleting(false);
     }
@@ -54,8 +57,9 @@ const DocumentDetail = () => {
       document.body.appendChild(link);
       link.click();
       link.remove();
+      toast.success('다운로드가 시작되었습니다.');
     } catch (err) {
-      alert('다운로드 중 오류가 발생했습니다');
+      toast.error('다운로드 중 오류가 발생했습니다');
     }
   };
 
@@ -95,10 +99,10 @@ const DocumentDetail = () => {
 
   if (error || !document) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center transition-colors duration-200">
         <div className="text-center">
-          <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-          <p className="text-gray-600">{error || '문서를 찾을 수 없습니다'}</p>
+          <AlertCircle className="w-16 h-16 text-red-500 dark:text-red-400 mx-auto mb-4" />
+          <p className="text-gray-600 dark:text-gray-300">{error || '문서를 찾을 수 없습니다'}</p>
           <button
             onClick={() => navigate('/documents')}
             className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
@@ -111,8 +115,8 @@ const DocumentDetail = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8 px-4 transition-colors duration-200">
+      <div className="max-w-4xl mx-auto w-full">
         <div className="bg-white rounded-lg shadow-md p-6">
           {/* 헤더 */}
           <div className="flex items-center justify-between mb-6">

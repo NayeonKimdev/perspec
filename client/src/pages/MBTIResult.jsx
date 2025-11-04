@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useToast } from '../components/Toast';
 import { ArrowLeft, RefreshCw, Share2, TrendingUp, Briefcase, Lightbulb, Target } from 'lucide-react';
 import { mbtiApi } from '../services/api';
 
 const MBTIResult = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const toast = useToast();
   const [loading, setLoading] = useState(true);
   const [estimation, setEstimation] = useState(null);
   const [error, setError] = useState(null);
@@ -43,10 +45,10 @@ const MBTIResult = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 dark:from-purple-900/20 dark:via-blue-900/20 dark:to-indigo-900/20 flex items-center justify-center transition-colors duration-200">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">결과를 불러오는 중...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 dark:border-purple-400 mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-300">결과를 불러오는 중...</p>
         </div>
       </div>
     );
@@ -54,7 +56,7 @@ const MBTIResult = () => {
 
   if (error || !estimation) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 dark:from-purple-900/20 dark:via-blue-900/20 dark:to-indigo-900/20 flex items-center justify-center transition-colors duration-200">
         <div className="text-center">
           <p className="text-red-600 mb-4">{error || '결과를 찾을 수 없습니다.'}</p>
           <button
@@ -96,7 +98,7 @@ const MBTIResult = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 dark:from-purple-900/20 dark:via-blue-900/20 dark:to-indigo-900/20 py-12 px-4 sm:px-6 lg:px-8 transition-colors duration-200">
       <div className="max-w-5xl mx-auto">
         {/* 헤더 */}
         <div className="mb-8">
@@ -257,7 +259,7 @@ const MBTIResult = () => {
             onClick={() => {
               const url = window.location.href;
               navigator.clipboard.writeText(url);
-              alert('결과 링크가 복사되었습니다!');
+              toast.success('결과 링크가 복사되었습니다!');
             }}
             className="flex items-center space-x-2 px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
           >

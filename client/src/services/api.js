@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getErrorMessage, getToastMessage } from '../utils/errorHandler';
 
 // API 기본 설정
 const api = axios.create({
@@ -32,16 +33,18 @@ longRunningApi.interceptors.response.use(
     return response;
   },
   (error) => {
+    // 401 에러는 자동으로 로그인 페이지로 리다이렉트
     if (error.response?.status === 401) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
+      // Toast는 사용할 수 없으므로 (로그아웃 후) 직접 리다이렉트
       window.location.href = '/login';
-    } else if (error.response?.status === 503) {
-      console.error('503 Service Unavailable:', error.response?.data?.message || '서버 연결 오류');
-    } else if (!error.response) {
-      console.error('Network Error:', error.message);
-      console.error('백엔드 서버가 실행 중인지 확인하세요 (포트 5000)');
     }
+    
+    // 에러 정보를 개선된 형태로 변환
+    const errorInfo = getErrorMessage(error);
+    console.error('API Error:', errorInfo.title, errorInfo.message);
+    
     return Promise.reject(error);
   }
 );
@@ -66,19 +69,18 @@ api.interceptors.response.use(
     return response;
   },
   (error) => {
+    // 401 에러는 자동으로 로그인 페이지로 리다이렉트
     if (error.response?.status === 401) {
-      // 토큰이 만료되었거나 유효하지 않은 경우
       localStorage.removeItem('token');
       localStorage.removeItem('user');
+      // Toast는 사용할 수 없으므로 (로그아웃 후) 직접 리다이렉트
       window.location.href = '/login';
-    } else if (error.response?.status === 503) {
-      // 서비스 일시 중단 (데이터베이스 연결 실패 등)
-      console.error('503 Service Unavailable:', error.response?.data?.message || '서버 연결 오류');
-    } else if (!error.response) {
-      // 네트워크 오류 또는 서버가 응답하지 않는 경우
-      console.error('Network Error:', error.message);
-      console.error('백엔드 서버가 실행 중인지 확인하세요 (포트 5000)');
     }
+    
+    // 에러 정보를 개선된 형태로 변환
+    const errorInfo = getErrorMessage(error);
+    console.error('API Error:', errorInfo.title, errorInfo.message);
+    
     return Promise.reject(error);
   }
 );

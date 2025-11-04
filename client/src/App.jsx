@@ -1,5 +1,7 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { ToastProvider } from './components/Toast';
+import { ThemeProvider } from './contexts/ThemeContext';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
@@ -30,8 +32,10 @@ function App() {
   };
 
   return (
-    <Router>
-      <div className="min-h-screen bg-gray-50">
+    <ThemeProvider>
+      <ToastProvider>
+        <Router>
+          <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
         <Routes>
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route 
@@ -199,8 +203,10 @@ function App() {
             } 
           />
         </Routes>
-      </div>
-    </Router>
+        </div>
+      </Router>
+    </ToastProvider>
+    </ThemeProvider>
   );
 }
 

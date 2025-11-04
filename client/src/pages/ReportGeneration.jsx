@@ -3,9 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { FileText, CheckCircle2, Loader2, Sparkles, Calendar } from 'lucide-react';
 import api from '../services/api';
 import { mediaApi, documentApi, reportApi, mbtiApi, emotionApi } from '../services/api';
+import { useToast } from '../components/Toast';
+import { SkeletonDashboard } from '../components/Skeleton';
 
 const ReportGeneration = () => {
   const navigate = useNavigate();
+  const toast = useToast();
   const [loading, setLoading] = useState(false);
   const [dataLoading, setDataLoading] = useState(true);
   const [title, setTitle] = useState('');
@@ -96,11 +99,10 @@ const ReportGeneration = () => {
         navigate(`/reports/${response.data.report.id}`);
       }
     } catch (error) {
-      if (error.response?.status === 400) {
-        alert(error.response.data.message || '충분한 데이터가 없습니다.');
-      } else {
-        alert('레포트 생성 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
-      }
+      const errorMessage = error.response?.status === 400
+        ? (error.response.data.message || '충분한 데이터가 없습니다.')
+        : '레포트 생성 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
+      toast.error(errorMessage);
       console.error('레포트 생성 실패:', error);
     } finally {
       setLoading(false);
@@ -114,89 +116,99 @@ const ReportGeneration = () => {
     dataCounts.documentCount + 
     dataCounts.analysisCount;
 
+  if (dataLoading) {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:from-indigo-900/20 dark:via-purple-900/20 dark:to-pink-900/20 py-12 px-4 sm:px-6 lg:px-8 transition-colors duration-200">
+      <div className="max-w-4xl mx-auto w-full">
+          <SkeletonDashboard />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:from-indigo-900/20 dark:via-purple-900/20 dark:to-pink-900/20 py-6 sm:py-8 md:py-12 px-4 sm:px-6 lg:px-8 transition-colors duration-200">
+      <div className="max-w-4xl mx-auto w-full">
         {/* 헤더 */}
-        <div className="text-center mb-12">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full mb-6">
-            <FileText className="w-10 h-10 text-white" />
+        <div className="text-center mb-6">
+          <div className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full mb-3">
+            <FileText className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
           </div>
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-2">
             종합 분석 레포트 생성
           </h1>
-          <p className="text-xl text-gray-600">
+          <p className="text-base sm:text-lg md:text-xl text-gray-600 dark:text-gray-300 mb-4">
             모든 데이터를 종합하여 당신에 대한 완전한 분석 레포트를 생성합니다
           </p>
         </div>
 
         {/* 포함될 데이터 체크리스트 */}
         {!dataLoading && (
-          <div className="bg-white rounded-xl shadow-lg p-8 mb-8">
-            <h2 className="text-xl font-semibold text-gray-800 mb-6">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 sm:p-8 mb-4 transition-colors duration-200">
+            <h2 className="text-lg sm:text-xl font-semibold text-gray-800 dark:text-white mb-4 sm:mb-6">
               포함될 데이터
             </h2>
             <div className="space-y-4">
               <div className="flex items-center space-x-3">
                 {dataCounts.hasProfile ? (
-                  <CheckCircle2 className="w-6 h-6 text-green-500" />
+                  <CheckCircle2 className="w-6 h-6 text-green-500 dark:text-green-400" />
                 ) : (
-                  <div className="w-6 h-6 rounded-full border-2 border-gray-300" />
+                  <div className="w-6 h-6 rounded-full border-2 border-gray-300 dark:border-gray-600" />
                 )}
-                <span className="text-gray-700">프로필 정보</span>
+                <span className="text-gray-700 dark:text-gray-300">프로필 정보</span>
               </div>
 
               <div className="flex items-center space-x-3">
                 {dataCounts.hasMBTI ? (
-                  <CheckCircle2 className="w-6 h-6 text-green-500" />
+                  <CheckCircle2 className="w-6 h-6 text-green-500 dark:text-green-400" />
                 ) : (
-                  <div className="w-6 h-6 rounded-full border-2 border-gray-300" />
+                  <div className="w-6 h-6 rounded-full border-2 border-gray-300 dark:border-gray-600" />
                 )}
-                <span className="text-gray-700">MBTI 분석</span>
+                <span className="text-gray-700 dark:text-gray-300">MBTI 분석</span>
               </div>
 
               <div className="flex items-center space-x-3">
                 {dataCounts.hasEmotion ? (
-                  <CheckCircle2 className="w-6 h-6 text-green-500" />
+                  <CheckCircle2 className="w-6 h-6 text-green-500 dark:text-green-400" />
                 ) : (
-                  <div className="w-6 h-6 rounded-full border-2 border-gray-300" />
+                  <div className="w-6 h-6 rounded-full border-2 border-gray-300 dark:border-gray-600" />
                 )}
-                <span className="text-gray-700">감정 패턴</span>
+                <span className="text-gray-700 dark:text-gray-300">감정 패턴</span>
               </div>
 
               <div className="flex items-center space-x-3">
                 {dataCounts.imageCount > 0 ? (
-                  <CheckCircle2 className="w-6 h-6 text-green-500" />
+                  <CheckCircle2 className="w-6 h-6 text-green-500 dark:text-green-400" />
                 ) : (
-                  <div className="w-6 h-6 rounded-full border-2 border-gray-300" />
+                  <div className="w-6 h-6 rounded-full border-2 border-gray-300 dark:border-gray-600" />
                 )}
-                <span className="text-gray-700">이미지 {dataCounts.imageCount}개</span>
+                <span className="text-gray-700 dark:text-gray-300">이미지 {dataCounts.imageCount}개</span>
               </div>
 
               <div className="flex items-center space-x-3">
                 {dataCounts.documentCount > 0 ? (
-                  <CheckCircle2 className="w-6 h-6 text-green-500" />
+                  <CheckCircle2 className="w-6 h-6 text-green-500 dark:text-green-400" />
                 ) : (
-                  <div className="w-6 h-6 rounded-full border-2 border-gray-300" />
+                  <div className="w-6 h-6 rounded-full border-2 border-gray-300 dark:border-gray-600" />
                 )}
-                <span className="text-gray-700">문서 {dataCounts.documentCount}개</span>
+                <span className="text-gray-700 dark:text-gray-300">문서 {dataCounts.documentCount}개</span>
               </div>
 
               <div className="flex items-center space-x-3">
                 {dataCounts.analysisCount > 0 ? (
-                  <CheckCircle2 className="w-6 h-6 text-green-500" />
+                  <CheckCircle2 className="w-6 h-6 text-green-500 dark:text-green-400" />
                 ) : (
-                  <div className="w-6 h-6 rounded-full border-2 border-gray-300" />
+                  <div className="w-6 h-6 rounded-full border-2 border-gray-300 dark:border-gray-600" />
                 )}
-                <span className="text-gray-700">기존 분석 {dataCounts.analysisCount}개</span>
+                <span className="text-gray-700 dark:text-gray-300">기존 분석 {dataCounts.analysisCount}개</span>
               </div>
             </div>
           </div>
         )}
 
         {/* 레포트 제목 입력 */}
-        <div className="bg-white rounded-xl shadow-lg p-8 mb-8">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 sm:p-8 mb-4 transition-colors duration-200">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             레포트 제목 (선택적)
           </label>
           <input
@@ -204,22 +216,22 @@ const ReportGeneration = () => {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="예: 2025년 1월 종합 분석 레포트"
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
           />
-          <p className="mt-2 text-sm text-gray-500">
+          <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
             제목을 입력하지 않으면 자동으로 생성됩니다.
           </p>
         </div>
 
         {/* 레포트 생성 버튼 */}
-        <div className="text-center mb-12">
+        <div className="text-center mb-6">
           {loading ? (
-            <div className="bg-white rounded-xl shadow-lg p-12">
-              <Loader2 className="w-16 h-16 text-indigo-600 animate-spin mx-auto mb-4" />
-              <p className="text-xl font-semibold text-gray-700 mb-2">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-12 transition-colors duration-200">
+              <Loader2 className="w-16 h-16 text-indigo-600 dark:text-indigo-400 animate-spin mx-auto mb-4" />
+              <p className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">
                 AI가 종합 레포트를 작성하고 있습니다...
               </p>
-              <p className="text-gray-500">
+              <p className="text-gray-500 dark:text-gray-400">
                 이 작업은 1-3분 소요될 수 있습니다. 잠시만 기다려주세요...
               </p>
             </div>
@@ -239,21 +251,21 @@ const ReportGeneration = () => {
 
         {/* 기존 레포트 리스트 */}
         {reports.length > 0 && (
-          <div className="bg-white rounded-xl shadow-lg p-8">
-            <h2 className="text-xl font-semibold text-gray-800 mb-6">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 transition-colors duration-200">
+            <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-6">
               이전에 생성한 레포트
             </h2>
             <div className="space-y-4">
               {reports.map((report) => (
                 <div
                   key={report.id}
-                  className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                  className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                 >
                   <div className="flex items-center space-x-4">
-                    <FileText className="w-6 h-6 text-indigo-600" />
+                    <FileText className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
                     <div>
-                      <p className="font-medium text-gray-800">{report.title}</p>
-                      <p className="text-sm text-gray-500 flex items-center space-x-1">
+                      <p className="font-medium text-gray-800 dark:text-gray-200">{report.title}</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center space-x-1">
                         <Calendar className="w-4 h-4" />
                         <span>
                           {new Date(report.created_at).toLocaleDateString('ko-KR')}
@@ -263,7 +275,7 @@ const ReportGeneration = () => {
                   </div>
                   <button
                     onClick={() => navigate(`/reports/${report.id}`)}
-                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                    className="px-4 py-2 bg-indigo-600 dark:bg-indigo-700 text-white rounded-lg hover:bg-indigo-700 dark:hover:bg-indigo-600 transition-colors"
                   >
                     보기
                   </button>

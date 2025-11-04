@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Upload, X, Check, AlertCircle, Camera, FileImage } from 'lucide-react';
 import { mediaApi } from '../services/api';
+import { useToast } from '../components/Toast';
 
 const MediaUpload = () => {
   const [uploadMode, setUploadMode] = useState('file'); // 'file' or 'camera'
@@ -21,6 +22,7 @@ const MediaUpload = () => {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const navigate = useNavigate();
+  const toast = useToast();
 
   // 파일 선택
   const handleFileSelect = (e) => {
@@ -191,8 +193,8 @@ const MediaUpload = () => {
         });
         
         setUploadStatus([{ status: 'completed' }]);
-        alert('업로드 완료!');
-        navigate('/gallery');
+        toast.success('업로드 완료!');
+        setTimeout(() => navigate('/gallery'), 1000);
       } catch (err) {
         setUploadStatus([{ status: 'failed', error: err.response?.data?.message || '업로드 실패' }]);
         setError(err.response?.data?.message || '업로드 중 오류가 발생했습니다');
@@ -216,8 +218,8 @@ const MediaUpload = () => {
         });
         
         setUploadStatus(selectedFiles.map(() => ({ status: 'completed' })));
-        alert(`업로드 완료! (${selectedFiles.length}개 파일)`);
-        navigate('/gallery');
+        toast.success(`업로드 완료! (${selectedFiles.length}개 파일)`);
+        setTimeout(() => navigate('/gallery'), 1000);
       } catch (err) {
         const failedStatus = selectedFiles.map(() => ({ status: 'failed', error: err.response?.data?.message || '업로드 실패' }));
         setUploadStatus(failedStatus);
@@ -228,8 +230,8 @@ const MediaUpload = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4">
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12 px-4 transition-colors duration-200">
+      <div className="max-w-4xl mx-auto w-full">
         <h1 className="text-3xl font-bold text-gray-900 mb-8">이미지 업로드</h1>
 
         {/* 업로드 모드 선택 탭 */}

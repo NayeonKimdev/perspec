@@ -1,9 +1,13 @@
 import { useState, useEffect } from 'react';
+import { useToast } from '../components/Toast';
 import { useNavigate } from 'react-router-dom';
 import { BarChart3, TrendingUp, CheckCircle, Clock, XCircle, Sparkles, AlertCircle } from 'lucide-react';
 import { mediaApi, analysisApi } from '../services/api';
+import { getToastMessage } from '../utils/errorHandler';
+import ErrorDisplay from '../components/ErrorDisplay';
 
 const ImageAnalysisSummary = () => {
+  const toast = useToast();
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -22,7 +26,9 @@ const ImageAnalysisSummary = () => {
       const response = await mediaApi.getAnalysisSummary();
       setSummary(response.data.summary);
     } catch (err) {
-      setError(err.response?.data?.message || '분석 요약을 불러오는 중 오류가 발생했습니다');
+      const errorMessage = getToastMessage(err);
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -41,12 +47,12 @@ const ImageAnalysisSummary = () => {
       if (response.data.analysis && response.data.analysis.id) {
         navigate(`/analysis/${response.data.analysis.id}`);
       } else {
-        alert('분석이 생성되었습니다!');
+        toast.success('분석이 생성되었습니다!');
         navigate('/analysis-history');
       }
     } catch (err) {
       const errorMessage = err.response?.data?.message || '분석 생성 중 오류가 발생했습니다';
-      alert(errorMessage);
+      toast.error(errorMessage);
       console.error('통합 분석 생성 실패:', err);
     } finally {
       setCreatingAnalysis(false);
@@ -60,19 +66,19 @@ const ImageAnalysisSummary = () => {
 
     try {
       await mediaApi.retryAllFailedAnalysis();
-      alert('재분석이 시작되었습니다. 잠시 후 새로고침해주세요.');
+      toast.success('재분석이 시작되었습니다. 잠시 후 새로고침해주세요.');
       loadSummary();
     } catch (err) {
-      alert(err.response?.data?.message || '재분석 요청 중 오류가 발생했습니다');
+      toast.error(err.response?.data?.message || '재분석 요청 중 오류가 발생했습니다');
     }
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center transition-colors duration-200">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">분석 요약을 불러오는 중...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 dark:border-blue-400 mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-300">분석 요약을 불러오는 중...</p>
         </div>
       </div>
     );
@@ -80,12 +86,13 @@ const ImageAnalysisSummary = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-red-600 mb-4">{error}</p>
-          <button onClick={loadSummary} className="px-4 py-2 bg-blue-600 text-white rounded-lg">
-            다시 시도
-          </button>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12 px-4 transition-colors duration-200">
+        <div className="max-w-2xl mx-auto w-full">
+          <ErrorDisplay 
+            error={{ message: error }} 
+            onRetry={loadSummary}
+            onDismiss={() => setError(null)}
+          />
         </div>
       </div>
     );
@@ -94,8 +101,8 @@ const ImageAnalysisSummary = () => {
   if (!summary) return null;
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4">
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12 px-4 transition-colors duration-200">
+      <div className="max-w-6xl mx-auto w-full">
         {/* 헤더 */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">이미지 분석 요약</h1>

@@ -4,10 +4,12 @@ import { User, Briefcase, Heart, MapPin, ArrowLeft, RefreshCw, History, Image, S
 import api from '../services/api';
 import { mediaApi } from '../services/api';
 import ImageAnalysisModal from '../components/ImageAnalysisModal';
+import { useToast } from '../components/Toast';
 
 const AnalysisResult = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const toast = useToast();
   const [analysis, setAnalysis] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -52,7 +54,7 @@ const AnalysisResult = () => {
       setAnalysisData(response.data.analysis);
       setViewingAnalysis(imageItem);
     } catch (err) {
-      alert(err.response?.data?.message || '분석 결과를 불러오는 중 오류가 발생했습니다');
+      toast.error(err.response?.data?.message || '분석 결과를 불러오는 중 오류가 발생했습니다');
     }
   };
 
@@ -104,8 +106,8 @@ const AnalysisResult = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50">
-      <div className="max-w-6xl mx-auto px-4 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 transition-colors duration-200">
+      <div className="max-w-6xl mx-auto px-4 py-8 w-full">
         {/* 헤더 */}
         <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
           <div className="flex items-center justify-between">

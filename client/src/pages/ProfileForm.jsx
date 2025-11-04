@@ -343,12 +343,12 @@ const ProfileForm = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12 transition-colors duration-200">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
         {/* 헤더 */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">프로필 작성하기</h1>
-          <p className="mt-2 text-sm text-gray-600">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">프로필 작성하기</h1>
+          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
             {totalFields}개 중 <span className="font-semibold text-blue-600">{filledFieldsCount}</span>개 작성됨 (각 10자 이상)
           </p>
         </div>
@@ -382,10 +382,10 @@ const ProfileForm = () => {
         </div>
 
         {/* 폼 */}
-        <form onSubmit={handleSubmit} className="bg-white shadow-sm rounded-lg p-8">
+        <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 shadow-sm rounded-lg p-8 transition-colors duration-200">
           {/* 좋아하는 것 */}
           <div className="mb-6">
-            <label htmlFor="interests" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="interests" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               좋아하는 것 (음악, 영화, 책, 음식 등)
             </label>
             <TagSelector fieldName="interests" />
@@ -396,13 +396,13 @@ const ProfileForm = () => {
               value={formData.interests}
               onChange={handleChange}
               placeholder="태그를 선택하거나 직접 입력하세요"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
             />
           </div>
 
           {/* 취미 활동 */}
           <div className="mb-6">
-            <label htmlFor="hobbies" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="hobbies" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               취미 활동 (주말 활동, 최근 관심사)
             </label>
             <TagSelector fieldName="hobbies" />
@@ -413,7 +413,7 @@ const ProfileForm = () => {
               value={formData.hobbies}
               onChange={handleChange}
               placeholder="태그를 선택하거나 직접 입력하세요"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
             />
           </div>
 
@@ -430,7 +430,7 @@ const ProfileForm = () => {
               value={formData.personality}
               onChange={handleChange}
               placeholder="태그를 선택하거나 직접 입력하세요"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
             />
           </div>
 
@@ -447,7 +447,7 @@ const ProfileForm = () => {
               value={formData.dreams}
               onChange={handleChange}
               placeholder="태그를 선택하거나 직접 입력하세요"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
             />
           </div>
 
@@ -464,7 +464,7 @@ const ProfileForm = () => {
               value={formData.ideal_type}
               onChange={handleChange}
               placeholder="태그를 선택하거나 직접 입력하세요"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
             />
           </div>
 
@@ -481,7 +481,7 @@ const ProfileForm = () => {
               value={formData.concerns}
               onChange={handleChange}
               placeholder="태그를 선택하거나 직접 입력하세요"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
             />
           </div>
 
@@ -498,7 +498,7 @@ const ProfileForm = () => {
               value={formData.dating_style}
               onChange={handleChange}
               placeholder="태그를 선택하거나 직접 입력하세요"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
             />
           </div>
 
@@ -515,7 +515,7 @@ const ProfileForm = () => {
               value={formData.other_info}
               onChange={handleChange}
               placeholder="태그를 선택하거나 직접 입력하세요"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
             />
           </div>
 

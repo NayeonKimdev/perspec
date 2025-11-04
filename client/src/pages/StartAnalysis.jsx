@@ -2,9 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Brain, Loader2, ArrowLeft, AlertCircle } from 'lucide-react';
 import api from '../services/api';
+import { useToast } from '../components/Toast';
+import { getToastMessage } from '../utils/errorHandler';
+import ErrorDisplay from '../components/ErrorDisplay';
 
 const StartAnalysis = () => {
   const navigate = useNavigate();
+  const toast = useToast();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [analyzing, setAnalyzing] = useState(false);
@@ -84,13 +88,9 @@ const StartAnalysis = () => {
       navigate(`/analysis/${response.data.analysis.id}`);
     } catch (err) {
       console.error('분석 실패:', err);
-      
-      if (err.code === 'ECONNABORTED') {
-        setError('분석 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.');
-      } else {
-        setError(err.response?.data?.message || '분석 중 오류가 발생했습니다');
-      }
-      
+      const errorMessage = getToastMessage(err);
+      setError(errorMessage);
+      toast.error(errorMessage);
       setAnalyzing(false);
     }
   };
@@ -142,8 +142,8 @@ const StartAnalysis = () => {
   const missingFields = getMissingFields();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50">
-      <div className="max-w-4xl mx-auto px-4 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 transition-colors duration-200">
+      <div className="max-w-4xl mx-auto px-4 py-8 w-full">
         {/* 헤더 */}
         <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
           <button

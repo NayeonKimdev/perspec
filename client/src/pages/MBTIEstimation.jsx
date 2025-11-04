@@ -3,9 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { Brain, CheckCircle2, Upload, FileText, Sparkles, Loader2 } from 'lucide-react';
 import api from '../services/api';
 import { mediaApi, documentApi, mbtiApi } from '../services/api';
+import { useToast } from '../components/Toast';
+import { SkeletonDashboard } from '../components/Skeleton';
 
 const MBTIEstimation = () => {
   const navigate = useNavigate();
+  const toast = useToast();
   const [loading, setLoading] = useState(false);
   const [dataLoading, setDataLoading] = useState(true);
   const [dataCounts, setDataCounts] = useState({
@@ -76,11 +79,10 @@ const MBTIEstimation = () => {
         navigate(`/mbti/${response.data.estimation.id}`);
       }
     } catch (error) {
-      if (error.response?.status === 400) {
-        alert(error.response.data.message || '충분한 데이터가 없습니다.');
-      } else {
-        alert('MBTI 추정 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
-      }
+      const errorMessage = error.response?.status === 400
+        ? (error.response.data.message || '충분한 데이터가 없습니다.')
+        : 'MBTI 추정 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
+      toast.error(errorMessage);
       console.error('MBTI 추정 실패:', error);
     } finally {
       setLoading(false);
@@ -92,46 +94,56 @@ const MBTIEstimation = () => {
     dataCounts.documentCount + 
     dataCounts.analysisCount;
 
+  if (dataLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto">
+          <SkeletonDashboard />
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 dark:from-purple-900/20 dark:via-blue-900/20 dark:to-indigo-900/20 py-12 px-4 sm:px-6 lg:px-8 transition-colors duration-200">
+      <div className="max-w-4xl mx-auto w-full">
         {/* 헤더 */}
         <div className="text-center mb-12">
           <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-full mb-6">
             <Brain className="w-10 h-10 text-white" />
           </div>
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
+          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
             MBTI 성격 유형 분석
           </h1>
-          <p className="text-xl text-gray-600">
+          <p className="text-xl text-gray-600 dark:text-gray-300">
             당신의 데이터를 바탕으로 MBTI 성격 유형을 추정합니다
           </p>
         </div>
 
         {/* 데이터 준비 상황 */}
         {!dataLoading && (
-          <div className="bg-white rounded-xl shadow-lg p-8 mb-8">
-            <h2 className="text-xl font-semibold text-gray-800 mb-6">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 mb-8 transition-colors duration-200">
+            <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-6">
               데이터 준비 상황
             </h2>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   {dataCounts.hasProfile ? (
-                    <CheckCircle2 className="w-6 h-6 text-green-500" />
+                    <CheckCircle2 className="w-6 h-6 text-green-500 dark:text-green-400" />
                   ) : (
-                    <div className="w-6 h-6 rounded-full border-2 border-gray-300" />
+                    <div className="w-6 h-6 rounded-full border-2 border-gray-300 dark:border-gray-600" />
                   )}
-                  <span className="text-gray-700">프로필 작성됨</span>
+                  <span className="text-gray-700 dark:text-gray-300">프로필 작성됨</span>
                 </div>
               </div>
 
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   {dataCounts.imageCount > 0 ? (
-                    <CheckCircle2 className="w-6 h-6 text-green-500" />
+                    <CheckCircle2 className="w-6 h-6 text-green-500 dark:text-green-400" />
                   ) : (
-                    <div className="w-6 h-6 rounded-full border-2 border-gray-300" />
+                    <div className="w-6 h-6 rounded-full border-2 border-gray-300 dark:border-gray-600" />
                   )}
                   <span className="text-gray-700">
                     이미지 {dataCounts.imageCount}개 업로드
@@ -142,9 +154,9 @@ const MBTIEstimation = () => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   {dataCounts.documentCount > 0 ? (
-                    <CheckCircle2 className="w-6 h-6 text-green-500" />
+                    <CheckCircle2 className="w-6 h-6 text-green-500 dark:text-green-400" />
                   ) : (
-                    <div className="w-6 h-6 rounded-full border-2 border-gray-300" />
+                    <div className="w-6 h-6 rounded-full border-2 border-gray-300 dark:border-gray-600" />
                   )}
                   <span className="text-gray-700">
                     문서 {dataCounts.documentCount}개 업로드
@@ -155,9 +167,9 @@ const MBTIEstimation = () => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   {dataCounts.analysisCount > 0 ? (
-                    <CheckCircle2 className="w-6 h-6 text-green-500" />
+                    <CheckCircle2 className="w-6 h-6 text-green-500 dark:text-green-400" />
                   ) : (
-                    <div className="w-6 h-6 rounded-full border-2 border-gray-300" />
+                    <div className="w-6 h-6 rounded-full border-2 border-gray-300 dark:border-gray-600" />
                   )}
                   <span className="text-gray-700">
                     기존 분석 {dataCounts.analysisCount}개
@@ -254,8 +266,10 @@ const MBTIEstimation = () => {
                   if (res.data.estimations && res.data.estimations.length > 0) {
                     navigate(`/mbti/${res.data.estimations[0].id}`);
                   } else {
-                    alert('이전 추정 결과가 없습니다.');
+                    toast.warning('이전 추정 결과가 없습니다.');
                   }
+                }).catch(err => {
+                  toast.error('히스토리를 불러오는 중 오류가 발생했습니다.');
                 });
               }}
               className="text-gray-600 hover:text-gray-800 underline"
