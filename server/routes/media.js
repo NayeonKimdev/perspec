@@ -16,6 +16,9 @@ router.post('/upload-multiple', uploadMultiple, mediaController.uploadMultipleIm
 // 사용자의 모든 미디어 조회
 router.get('/list', mediaController.getMediaList);
 
+// 이미지 검색
+router.get('/search', mediaController.searchMedia);
+
 // 특정 미디어 삭제
 router.delete('/:id', mediaController.deleteMedia);
 

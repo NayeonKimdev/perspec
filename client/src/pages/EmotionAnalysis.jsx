@@ -48,21 +48,21 @@ const EmotionAnalysis = () => {
   };
 
   const getHealthColor = (score) => {
-    if (score >= 75) return 'text-green-600';
-    if (score >= 50) return 'text-yellow-600';
-    return 'text-red-600';
+    if (score >= 75) return 'text-green-600 dark:text-green-400';
+    if (score >= 50) return 'text-yellow-600 dark:text-yellow-400';
+    return 'text-red-600 dark:text-red-400';
   };
 
   const getHealthBgColor = (score) => {
-    if (score >= 75) return 'from-green-400 to-emerald-500';
-    if (score >= 50) return 'from-yellow-400 to-orange-500';
-    return 'from-red-400 to-rose-500';
+    if (score >= 75) return 'from-green-400 to-emerald-500 dark:from-green-500 dark:to-emerald-600';
+    if (score >= 50) return 'from-yellow-400 to-orange-500 dark:from-yellow-500 dark:to-orange-600';
+    return 'from-red-400 to-rose-500 dark:from-red-500 dark:to-rose-600';
   };
 
   const getHealthRingColor = (score) => {
-    if (score >= 75) return 'stroke-green-500';
-    if (score >= 50) return 'stroke-yellow-500';
-    return 'stroke-red-500';
+    if (score >= 75) return 'stroke-green-500 dark:stroke-green-400';
+    if (score >= 50) return 'stroke-yellow-500 dark:stroke-yellow-400';
+    return 'stroke-red-500 dark:stroke-red-400';
   };
 
   return (
@@ -98,12 +98,12 @@ const EmotionAnalysis = () => {
 
         {/* 로딩 */}
         {loading && (
-          <div className="bg-white rounded-xl shadow-lg p-12 text-center">
-            <Loader2 className="w-16 h-16 text-pink-600 animate-spin mx-auto mb-4" />
-            <p className="text-xl font-semibold text-gray-700 mb-2">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-12 text-center transition-colors duration-200">
+            <Loader2 className="w-16 h-16 text-pink-600 dark:text-pink-400 animate-spin mx-auto mb-4" />
+            <p className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">
               감정을 분석하고 있습니다...
             </p>
-            <p className="text-gray-500">
+            <p className="text-gray-500 dark:text-gray-400">
               이 작업은 30-60초 정도 소요됩니다.
             </p>
           </div>
@@ -111,10 +111,10 @@ const EmotionAnalysis = () => {
 
         {/* 에러 메시지 */}
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-xl p-6 mb-8">
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-6 mb-8 transition-colors duration-200">
             <div className="flex items-center space-x-3">
-              <AlertTriangle className="w-6 h-6 text-red-600" />
-              <p className="text-red-800">{error}</p>
+              <AlertTriangle className="w-6 h-6 text-red-600 dark:text-red-400" />
+              <p className="text-red-800 dark:text-red-300">{error}</p>
             </div>
           </div>
         )}
@@ -123,8 +123,8 @@ const EmotionAnalysis = () => {
         {analysis && !loading && (
           <div className="space-y-6">
             {/* 감정 건강 점수 */}
-            <div className="bg-white rounded-xl shadow-lg p-8">
-              <h2 className="text-2xl font-semibold text-gray-800 mb-6 text-center">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 transition-colors duration-200">
+              <h2 className="text-2xl font-semibold text-gray-800 dark:text-white mb-6 text-center">
                 감정 건강 점수
               </h2>
               <div className="flex justify-center">
@@ -138,7 +138,7 @@ const EmotionAnalysis = () => {
                       stroke="currentColor"
                       strokeWidth="12"
                       fill="none"
-                      className="text-gray-200"
+                      className="text-gray-200 dark:text-gray-700"
                     />
                     <circle
                       cx="96"
@@ -158,7 +158,7 @@ const EmotionAnalysis = () => {
                       <p className={`text-5xl font-bold ${getHealthColor(analysis.health_score)}`}>
                         {analysis.health_score}
                       </p>
-                      <p className="text-gray-500 text-sm mt-2">점</p>
+                      <p className="text-gray-500 dark:text-gray-400 text-sm mt-2">점</p>
                     </div>
                   </div>
                 </div>
@@ -167,18 +167,18 @@ const EmotionAnalysis = () => {
 
             {/* 주요 감정 */}
             {analysis.primary_emotions && analysis.primary_emotions.length > 0 && (
-              <div className="bg-white rounded-xl shadow-lg p-6">
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 transition-colors duration-200">
                 <div className="flex items-center space-x-3 mb-4">
-                  <TrendingUp className="w-6 h-6 text-pink-600" />
-                  <h2 className="text-xl font-semibold text-gray-800">주요 감정</h2>
+                  <TrendingUp className="w-6 h-6 text-pink-600 dark:text-pink-400" />
+                  <h2 className="text-xl font-semibold text-gray-800 dark:text-white">주요 감정</h2>
                 </div>
                 <div className="flex flex-wrap gap-3">
                   {analysis.primary_emotions.map((emotion, index) => (
                     <div
                       key={index}
-                      className="px-4 py-2 bg-gradient-to-r from-pink-100 to-rose-100 rounded-full"
+                      className="px-4 py-2 bg-gradient-to-r from-pink-100 to-rose-100 dark:from-pink-900/30 dark:to-rose-900/30 rounded-full"
                     >
-                      <span className="text-pink-800 font-medium">{emotion}</span>
+                      <span className="text-pink-800 dark:text-pink-300 font-medium">{emotion}</span>
                     </div>
                   ))}
                 </div>
@@ -186,31 +186,31 @@ const EmotionAnalysis = () => {
             )}
 
             {/* 긍정/부정 비율 */}
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <h2 className="text-xl font-semibold text-gray-800 mb-4">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 transition-colors duration-200">
+              <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">
                 긍정/부정 비율
               </h2>
               <div className="space-y-4">
                 <div>
                   <div className="flex justify-between mb-2">
-                    <span className="text-green-700 font-medium">긍정</span>
-                    <span className="text-gray-600">{analysis.positive_ratio}%</span>
+                    <span className="text-green-700 dark:text-green-400 font-medium">긍정</span>
+                    <span className="text-gray-600 dark:text-gray-400">{analysis.positive_ratio}%</span>
                   </div>
-                  <div className="w-full h-6 bg-gray-200 rounded-full overflow-hidden">
+                  <div className="w-full h-6 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-gradient-to-r from-green-400 to-emerald-500 transition-all duration-500"
+                      className="h-full bg-gradient-to-r from-green-400 to-emerald-500 dark:from-green-500 dark:to-emerald-600 transition-all duration-500"
                       style={{ width: `${analysis.positive_ratio}%` }}
                     />
                   </div>
                 </div>
                 <div>
                   <div className="flex justify-between mb-2">
-                    <span className="text-red-700 font-medium">부정</span>
-                    <span className="text-gray-600">{analysis.negative_ratio}%</span>
+                    <span className="text-red-700 dark:text-red-400 font-medium">부정</span>
+                    <span className="text-gray-600 dark:text-gray-400">{analysis.negative_ratio}%</span>
                   </div>
-                  <div className="w-full h-6 bg-gray-200 rounded-full overflow-hidden">
+                  <div className="w-full h-6 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-gradient-to-r from-red-400 to-rose-500 transition-all duration-500"
+                      className="h-full bg-gradient-to-r from-red-400 to-rose-500 dark:from-red-500 dark:to-rose-600 transition-all duration-500"
                       style={{ width: `${analysis.negative_ratio}%` }}
                     />
                   </div>
@@ -219,13 +219,13 @@ const EmotionAnalysis = () => {
             </div>
 
             {/* 감정 안정성 */}
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <h2 className="text-xl font-semibold text-gray-800 mb-4">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 transition-colors duration-200">
+              <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">
                 감정 안정성
               </h2>
               <div className="flex items-center space-x-4">
                 <div className="flex-1">
-                  <div className="w-full h-6 bg-gray-200 rounded-full overflow-hidden">
+                  <div className="w-full h-6 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                     <div
                       className={`h-full bg-gradient-to-r ${getHealthBgColor(analysis.stability_score)} transition-all duration-500`}
                       style={{ width: `${analysis.stability_score}%` }}
@@ -236,7 +236,7 @@ const EmotionAnalysis = () => {
                   {analysis.stability_score}점
                 </span>
               </div>
-              <p className="text-sm text-gray-600 mt-3">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-3">
                 {analysis.stability_score >= 70 
                   ? '감정이 안정적입니다.' 
                   : analysis.stability_score >= 50
@@ -247,15 +247,15 @@ const EmotionAnalysis = () => {
 
             {/* 감정 패턴 */}
             {analysis.emotion_patterns && analysis.emotion_patterns.length > 0 && (
-              <div className="bg-white rounded-xl shadow-lg p-6">
-                <h2 className="text-xl font-semibold text-gray-800 mb-4">
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 transition-colors duration-200">
+                <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">
                   감정 패턴
                 </h2>
                 <ul className="space-y-2">
                   {analysis.emotion_patterns.map((pattern, index) => (
                     <li key={index} className="flex items-start space-x-3">
-                      <div className="w-2 h-2 bg-pink-600 rounded-full mt-2 flex-shrink-0" />
-                      <p className="text-gray-700">{pattern}</p>
+                      <div className="w-2 h-2 bg-pink-600 dark:bg-pink-400 rounded-full mt-2 flex-shrink-0" />
+                      <p className="text-gray-700 dark:text-gray-300">{pattern}</p>
                     </li>
                   ))}
                 </ul>
@@ -264,16 +264,16 @@ const EmotionAnalysis = () => {
 
             {/* 주의사항 */}
             {analysis.concerns && analysis.concerns.length > 0 && (
-              <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6">
+              <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-xl p-6 transition-colors duration-200">
                 <div className="flex items-center space-x-3 mb-4">
-                  <AlertTriangle className="w-6 h-6 text-yellow-600" />
-                  <h2 className="text-xl font-semibold text-yellow-800">주의사항</h2>
+                  <AlertTriangle className="w-6 h-6 text-yellow-600 dark:text-yellow-400" />
+                  <h2 className="text-xl font-semibold text-yellow-800 dark:text-yellow-200">주의사항</h2>
                 </div>
                 <ul className="space-y-2">
                   {analysis.concerns.map((concern, index) => (
                     <li key={index} className="flex items-start space-x-3">
-                      <div className="w-2 h-2 bg-yellow-600 rounded-full mt-2 flex-shrink-0" />
-                      <p className="text-yellow-900">{concern}</p>
+                      <div className="w-2 h-2 bg-yellow-600 dark:bg-yellow-400 rounded-full mt-2 flex-shrink-0" />
+                      <p className="text-yellow-900 dark:text-yellow-200">{concern}</p>
                     </li>
                   ))}
                 </ul>
@@ -282,17 +282,17 @@ const EmotionAnalysis = () => {
 
             {/* 개선 제안 */}
             {analysis.suggestions && analysis.suggestions.length > 0 && (
-              <div className="bg-white rounded-xl shadow-lg p-6">
-                <h2 className="text-xl font-semibold text-gray-800 mb-4">
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 transition-colors duration-200">
+                <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">
                   개선 제안
                 </h2>
                 <div className="space-y-3">
                   {analysis.suggestions.map((suggestion, index) => (
                     <div
                       key={index}
-                      className="p-4 bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 rounded-lg"
+                      className="p-4 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/30 dark:to-cyan-900/30 border border-blue-200 dark:border-blue-800 rounded-lg"
                     >
-                      <p className="text-gray-700">{suggestion}</p>
+                      <p className="text-gray-700 dark:text-gray-300">{suggestion}</p>
                     </div>
                   ))}
                 </div>
@@ -303,7 +303,7 @@ const EmotionAnalysis = () => {
             <div className="text-center">
               <button
                 onClick={handleAnalyze}
-                className="px-8 py-3 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors"
+                className="px-8 py-3 bg-pink-600 dark:bg-pink-700 text-white rounded-lg hover:bg-pink-700 dark:hover:bg-pink-600 transition-colors"
               >
                 다시 분석하기
               </button>
@@ -313,8 +313,8 @@ const EmotionAnalysis = () => {
 
         {/* 분석 결과 없음 */}
         {!analysis && !analysisLoading && !loading && !error && (
-          <div className="bg-white rounded-xl shadow-lg p-12 text-center">
-            <p className="text-gray-600 mb-6">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-12 text-center transition-colors duration-200">
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
               아직 감정 분석 결과가 없습니다. 분석을 시작해보세요.
             </p>
           </div>

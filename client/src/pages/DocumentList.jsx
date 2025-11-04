@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { FileText, Trash2, Eye, Search, Upload, Loader, CheckCircle, Clock, XCircle, AlertCircle, Download } from 'lucide-react';
 import { documentApi } from '../services/api';
 import { useToast } from '../components/Toast';
+import { SkeletonList } from '../components/Skeleton';
 
 const DocumentList = () => {
   const [documents, setDocuments] = useState([]);
@@ -196,8 +197,19 @@ const DocumentList = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader className="w-8 h-8 animate-spin text-blue-600" />
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8 px-4 transition-colors duration-200">
+        <div className="max-w-6xl mx-auto">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6 transition-colors duration-200">
+            <div className="flex items-center gap-3 mb-4">
+              <FileText className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">내 문서</h1>
+                <p className="text-gray-600 dark:text-gray-400 mt-1">문서를 불러오는 중...</p>
+              </div>
+            </div>
+          </div>
+          <SkeletonList count={10} />
+        </div>
       </div>
     );
   }

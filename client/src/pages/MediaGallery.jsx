@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useToast } from '../components/Toast';
 import { useNavigate } from 'react-router-dom';
-import { Upload, Trash2, AlertCircle, Loader, CheckCircle, Clock, XCircle, Eye, RefreshCw, Home, BarChart3 } from 'lucide-react';
+import { Upload, Trash2, AlertCircle, Loader, CheckCircle, Clock, XCircle, Eye, RefreshCw, Home, BarChart3, Search, Filter } from 'lucide-react';
 import { mediaApi } from '../services/api';
 import ImageModal from '../components/ImageModal';
 import ImageAnalysisModal from '../components/ImageAnalysisModal';
+import { SkeletonGallery } from '../components/Skeleton';
 
 const MediaGallery = () => {
   const toast = useToast();
@@ -18,6 +19,12 @@ const MediaGallery = () => {
   const [notification, setNotification] = useState(null);
   const [previousAnalysisStatuses, setPreviousAnalysisStatuses] = useState(new Map());
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [analysisStatusFilter, setAnalysisStatusFilter] = useState('all');
+  const [dateFilter, setDateFilter] = useState('all');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
   
   const navigate = useNavigate();
 
@@ -33,7 +40,27 @@ const MediaGallery = () => {
         setLoading(true);
       }
       setError(null);
-      const response = await mediaApi.getMediaList({ limit: 100 });
+      
+      let response;
+      if (searchQuery.trim()) {
+        // 검색
+        response = await mediaApi.searchMedia({
+          q: searchQuery,
+          analysis_status: analysisStatusFilter !== 'all' ? analysisStatusFilter : undefined,
+          date_filter: dateFilter !== 'all' ? dateFilter : undefined,
+          page,
+          limit: 20
+        });
+      } else {
+        // 목록 조회
+        response = await mediaApi.getMediaList({
+          analysis_status: analysisStatusFilter !== 'all' ? analysisStatusFilter : undefined,
+          date_filter: dateFilter !== 'all' ? dateFilter : undefined,
+          page,
+          limit: 20
+        });
+      }
+      
       const newMedia = response.data.media;
       
       // 상태 변경 여부 확인
@@ -69,6 +96,9 @@ const MediaGallery = () => {
       setPreviousAnalysisStatuses(newStatusMap);
       
       setMedia(newMedia);
+      setTotal(response.data.total || 0);
+      setPage(response.data.page || 1);
+      setTotalPages(response.data.totalPages || 1);
       
       // 스크롤 위치 복원
       if (preserveScroll && scrollPosition !== null) {
@@ -87,7 +117,17 @@ const MediaGallery = () => {
 
   useEffect(() => {
     loadMedia();
-  }, []);
+  }, [page, analysisStatusFilter, dateFilter]);
+
+  // 검색 debounce
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setPage(1);
+      loadMedia();
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   // 분석 대기 중이거나 진행 중인 이미지가 있으면 자동 새로고침 (스크롤 위치 유지)
   useEffect(() => {
@@ -198,10 +238,13 @@ const MediaGallery = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <Loader className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">이미지를 불러오는 중...</p>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12 px-4 transition-colors duration-200">
+        <div className="max-w-7xl mx-auto w-full">
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">내 갤러리</h1>
+            <p className="text-gray-600 dark:text-gray-400">이미지를 불러오는 중...</p>
+          </div>
+          <SkeletonGallery count={12} />
         </div>
       </div>
     );
@@ -248,21 +291,88 @@ const MediaGallery = () => {
 
         {/* 에러 메시지 */}
         {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-700">
+          <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-center gap-2 text-red-700 dark:text-red-400">
             <AlertCircle className="w-5 h-5" />
             <span>{error}</span>
             <button onClick={() => setError(null)} className="ml-auto">
-              <AlertCircle className="w-5 h-5" />
+              <XCircle className="w-5 h-5" />
             </button>
           </div>
         )}
 
+        {/* 검색 및 필터 */}
+        <div className="mb-6 space-y-4">
+          <div className="flex items-center gap-4 flex-wrap">
+            <div className="flex-1 min-w-[200px] relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500" />
+              <input
+                type="text"
+                placeholder="이미지 검색..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+          </div>
+
+          {/* 필터 탭 */}
+          <div className="flex gap-2 flex-wrap">
+            {/* 분석 상태 필터 */}
+            <div className="flex items-center gap-2">
+              <Filter className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+              <span className="text-sm text-gray-700 dark:text-gray-300">상태:</span>
+              {['all', 'completed', 'pending', 'analyzing', 'failed'].map((status) => (
+                <button
+                  key={status}
+                  onClick={() => {
+                    setAnalysisStatusFilter(status);
+                    setPage(1);
+                  }}
+                  className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
+                    analysisStatusFilter === status
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  {status === 'all' ? '전체' :
+                   status === 'completed' ? '완료' :
+                   status === 'pending' ? '대기' :
+                   status === 'analyzing' ? '분석중' : '실패'}
+                </button>
+              ))}
+            </div>
+
+            {/* 날짜 필터 */}
+            <div className="flex items-center gap-2 ml-4">
+              <span className="text-sm text-gray-700 dark:text-gray-300">기간:</span>
+              {['all', 'today', 'week', 'month'].map((filter) => (
+                <button
+                  key={filter}
+                  onClick={() => {
+                    setDateFilter(filter);
+                    setPage(1);
+                  }}
+                  className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
+                    dateFilter === filter
+                      ? 'bg-purple-600 text-white'
+                      : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  {filter === 'all' ? '전체' :
+                   filter === 'today' ? '오늘' :
+                   filter === 'week' ? '주간' : '월간'}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
         {/* 이미지 그리드 */}
         {media.length === 0 ? (
           <div className="text-center py-20">
-            <AlertCircle className="w-20 h-20 text-gray-300 mx-auto mb-4" />
-            <h2 className="text-2xl font-semibold text-gray-700 mb-4">아직 업로드한 이미지가 없습니다</h2>
-            <p className="text-gray-500 mb-8">첫 이미지를 업로드해보세요!</p>
+            <AlertCircle className="w-20 h-20 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+            <h2 className="text-2xl font-semibold text-gray-700 dark:text-gray-300 mb-4">아직 업로드한 이미지가 없습니다</h2>
+            <p className="text-gray-500 dark:text-gray-400 mb-8">첫 이미지를 업로드해보세요!</p>
             <button
               onClick={() => navigate('/upload')}
               className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
@@ -271,99 +381,131 @@ const MediaGallery = () => {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            {media.map((item) => (
-              <div
-                key={item.id}
-                className="group relative bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition cursor-pointer"
-                onClick={() => handleImageClick(item)}
-              >
-                {/* 이미지 썸네일 - 고정 크기 */}
-                <div className="relative w-full aspect-square bg-gray-100 overflow-hidden">
-                  <img
-                    src={item.file_url}
-                    alt={item.file_name}
-                    className="w-full h-full object-cover"
-                    style={{ minHeight: '200px', maxHeight: '200px' }}
-                    onError={(e) => {
-                      e.target.src = 'https://via.placeholder.com/200x200?text=Image+Error';
-                    }}
-                  />
-                  
-                  {/* 호버 오버레이 */}
-                  <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition flex items-center justify-center">
-                    <p className="text-white font-semibold text-xs opacity-0 group-hover:opacity-100 transition px-2 text-center">
-                      클릭하여 확대
-                    </p>
-                  </div>
-                  
-                  {/* 분석 상태 오버레이 (이미지 위) */}
-                  <div className="absolute top-2 left-2 z-10">
-                    <AnalysisStatusBadge status={item.analysis_status} compact={true} />
-                  </div>
-                </div>
-
-                {/* 정보 - 컴팩트하게 */}
-                <div className="p-3 space-y-1.5">
-                  <p className="font-semibold text-gray-900 truncate text-xs" title={item.file_name}>
-                    {item.file_name}
-                  </p>
-                  <div className="flex justify-between items-center text-xs text-gray-500">
-                    <span>{formatDate(item.created_at)}</span>
-                  </div>
-                  {/* 분석 완료/실패 버튼 */}
-                  <div className="flex gap-1.5 pt-1.5">
-                    {item.analysis_status === 'completed' && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleViewAnalysis(item);
-                        }}
-                        className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100 transition text-xs font-medium"
-                      >
-                        <Eye className="w-3 h-3" />
-                        분석 보기
-                      </button>
-                    )}
-                    {item.analysis_status === 'failed' && (
-                      <button
-                        onClick={async (e) => {
-                          e.stopPropagation();
-                          if (window.confirm('이 이미지 분석을 다시 시도하시겠습니까?')) {
-                            try {
-                              await mediaApi.retryAnalysis(item.id);
-                              toast.success('재분석이 시작되었습니다.');
-                              loadMedia();
-                            } catch (err) {
-                              toast.error(err.response?.data?.message || '재분석 요청 중 오류가 발생했습니다');
-                            }
-                          }
-                        }}
-                        className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 bg-red-50 text-red-600 rounded-md hover:bg-red-100 transition text-xs font-medium"
-                      >
-                        <Clock className="w-3 h-3" />
-                        재시도
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {/* 삭제 버튼 */}
-                <button
-                  onClick={(e) => handleDelete(item.id, e)}
-                  disabled={deletingId === item.id}
-                  className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition hover:bg-red-600 disabled:opacity-50 shadow-lg"
-                  title="이미지 삭제"
+          <>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+              {media.map((item) => (
+                <div
+                  key={item.id}
+                  className="group relative bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden hover:shadow-xl transition cursor-pointer"
+                  onClick={() => handleImageClick(item)}
                 >
-                  {deletingId === item.id ? (
-                    <Loader className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <Trash2 className="w-3.5 h-3.5" />
-                  )}
+                  {/* 이미지 썸네일 - 고정 크기 */}
+                  <div className="relative w-full aspect-square bg-gray-100 overflow-hidden">
+                    <img
+                      src={item.file_url}
+                      alt={item.file_name}
+                      className="w-full h-full object-cover"
+                      style={{ minHeight: '200px', maxHeight: '200px' }}
+                      loading="lazy"
+                      onError={(e) => {
+                        e.target.src = 'https://via.placeholder.com/200x200?text=Image+Error';
+                      }}
+                    />
+                    
+                    {/* 호버 오버레이 */}
+                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition flex items-center justify-center">
+                      <p className="text-white font-semibold text-xs opacity-0 group-hover:opacity-100 transition px-2 text-center">
+                        클릭하여 확대
+                      </p>
+                    </div>
+                    
+                    {/* 분석 상태 오버레이 (이미지 위) */}
+                    <div className="absolute top-2 left-2 z-10">
+                      <AnalysisStatusBadge status={item.analysis_status} compact={true} />
+                    </div>
+                  </div>
+
+                  {/* 정보 - 컴팩트하게 */}
+                  <div className="p-3 space-y-1.5">
+                    <p className="font-semibold text-gray-900 dark:text-white truncate text-xs" title={item.file_name}>
+                      {item.file_name}
+                    </p>
+                    <div className="flex justify-between items-center text-xs text-gray-500 dark:text-gray-400">
+                      <span>{formatDate(item.created_at)}</span>
+                    </div>
+                    {/* 분석 완료/실패 버튼 */}
+                    <div className="flex gap-1.5 pt-1.5">
+                      {item.analysis_status === 'completed' && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleViewAnalysis(item);
+                          }}
+                          className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-md hover:bg-blue-100 dark:hover:bg-blue-900/50 transition text-xs font-medium"
+                        >
+                          <Eye className="w-3 h-3" />
+                          분석 보기
+                        </button>
+                      )}
+                      {item.analysis_status === 'failed' && (
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            if (window.confirm('이 이미지 분석을 다시 시도하시겠습니까?')) {
+                              try {
+                                await mediaApi.retryAnalysis(item.id);
+                                toast.success('재분석이 시작되었습니다.');
+                                loadMedia();
+                              } catch (err) {
+                                toast.error(err.response?.data?.message || '재분석 요청 중 오류가 발생했습니다');
+                              }
+                            }
+                          }}
+                          className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-md hover:bg-red-100 dark:hover:bg-red-900/50 transition text-xs font-medium"
+                        >
+                          <Clock className="w-3 h-3" />
+                          재시도
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 삭제 버튼 */}
+                  <button
+                    onClick={(e) => handleDelete(item.id, e)}
+                    disabled={deletingId === item.id}
+                    className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition hover:bg-red-600 disabled:opacity-50 shadow-lg"
+                    title="이미지 삭제"
+                  >
+                    {deletingId === item.id ? (
+                      <Loader className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Trash2 className="w-3.5 h-3.5" />
+                    )}
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            {/* 페이지네이션 */}
+            {totalPages > 1 && (
+              <div className="mt-6 flex justify-center gap-2">
+                <button
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className="px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                >
+                  이전
+                </button>
+                <span className="px-4 py-2 text-gray-700 dark:text-gray-300">
+                  {page} / {totalPages}
+                </span>
+                <button
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                  className="px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                >
+                  다음
                 </button>
               </div>
-            ))}
-          </div>
+            )}
+
+            {searchQuery && (
+              <div className="mt-4 text-center text-gray-600 dark:text-gray-400">
+                총 {total}개의 결과를 찾았습니다
+              </div>
+            )}
+          </>
         )}
       </div>
 

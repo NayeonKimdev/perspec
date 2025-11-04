@@ -49,11 +49,6 @@ export const ThemeProvider = ({ children }) => {
     }
     
     localStorage.setItem('theme', theme);
-    
-    // 즉시 확인
-    console.log('✅ 테마 적용 완료:', theme);
-    console.log('✅ HTML 클래스:', root.className);
-    console.log('✅ Color Scheme:', root.style.colorScheme);
   }, [theme]);
 
   const toggleTheme = () => {

@@ -1,29 +1,33 @@
-import React, { useEffect } from 'react';
+import React, { lazy, Suspense, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ToastProvider } from './components/Toast';
 import { ThemeProvider } from './contexts/ThemeContext';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import Dashboard from './pages/Dashboard';
-import ProfileForm from './pages/ProfileForm';
-import ProfileView from './pages/ProfileView';
-import StartAnalysis from './pages/StartAnalysis';
-import AnalysisResult from './pages/AnalysisResult';
-import AnalysisHistory from './pages/AnalysisHistory';
-import MediaUpload from './pages/MediaUpload';
-import MediaGallery from './pages/MediaGallery';
-import ImageAnalysisSummary from './pages/ImageAnalysisSummary';
-import DocumentUpload from './pages/DocumentUpload';
-import DocumentList from './pages/DocumentList';
-import DocumentDetail from './pages/DocumentDetail';
-import DocumentAnalysisResult from './pages/DocumentAnalysisResult';
-import MBTIEstimation from './pages/MBTIEstimation';
-import MBTIResult from './pages/MBTIResult';
-import EmotionAnalysis from './pages/EmotionAnalysis';
-import ReportGeneration from './pages/ReportGeneration';
-import ReportDetail from './pages/ReportDetail';
-import Analytics from './pages/Analytics';
 import ProtectedRoute from './components/ProtectedRoute';
+import { SkeletonDashboard } from './components/Skeleton';
+
+// 코드 스플리팅 - 지연 로딩
+const Login = lazy(() => import('./pages/Login'));
+const Register = lazy(() => import('./pages/Register'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const ProfileForm = lazy(() => import('./pages/ProfileForm'));
+const ProfileView = lazy(() => import('./pages/ProfileView'));
+const StartAnalysis = lazy(() => import('./pages/StartAnalysis'));
+const AnalysisResult = lazy(() => import('./pages/AnalysisResult'));
+const AnalysisHistory = lazy(() => import('./pages/AnalysisHistory'));
+const MediaUpload = lazy(() => import('./pages/MediaUpload'));
+const MediaGallery = lazy(() => import('./pages/MediaGallery'));
+const ImageAnalysisSummary = lazy(() => import('./pages/ImageAnalysisSummary'));
+const DocumentUpload = lazy(() => import('./pages/DocumentUpload'));
+const DocumentList = lazy(() => import('./pages/DocumentList'));
+const DocumentDetail = lazy(() => import('./pages/DocumentDetail'));
+const DocumentAnalysisResult = lazy(() => import('./pages/DocumentAnalysisResult'));
+const MBTIEstimation = lazy(() => import('./pages/MBTIEstimation'));
+const MBTIResult = lazy(() => import('./pages/MBTIResult'));
+const EmotionAnalysis = lazy(() => import('./pages/EmotionAnalysis'));
+const ReportGeneration = lazy(() => import('./pages/ReportGeneration'));
+const ReportDetail = lazy(() => import('./pages/ReportDetail'));
+const Analytics = lazy(() => import('./pages/Analytics'));
+const Settings = lazy(() => import('./pages/Settings'));
 
 function App() {
   // 로그인한 사용자가 로그인/회원가입 페이지에 접근하면 대시보드로 리다이렉트
@@ -31,11 +35,19 @@ function App() {
     return localStorage.getItem('token') !== null;
   };
 
+  // 로딩 컴포넌트
+  const LoadingFallback = () => (
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+      <SkeletonDashboard />
+    </div>
+  );
+
   return (
     <ThemeProvider>
       <ToastProvider>
         <Router>
           <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+        <Suspense fallback={<LoadingFallback />}>
         <Routes>
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route 
@@ -202,7 +214,16 @@ function App() {
               </ProtectedRoute>
             } 
           />
+          <Route 
+            path="/settings" 
+            element={
+              <ProtectedRoute>
+                <Settings />
+              </ProtectedRoute>
+            } 
+          />
         </Routes>
+        </Suspense>
         </div>
       </Router>
     </ToastProvider>

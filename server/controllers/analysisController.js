@@ -1,6 +1,7 @@
 const Analysis = require('../models/Analysis');
 const Profile = require('../models/Profile');
 const Media = require('../models/Media');
+const { Op } = require('sequelize');
 const { analyzeProfile } = require('../services/aiService');
 
 /**
@@ -101,10 +102,48 @@ const getHistory = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const offset = (page - 1) * limit;
+    const dateFilter = req.query.date_filter; // today, week, month, all
+    const query = req.query.q; // 검색어
+
+    // 조건 설정
+    const where = { user_id: userId };
+
+    // 날짜 필터
+    if (dateFilter && dateFilter !== 'all') {
+      const now = new Date();
+      let startDate = new Date();
+      
+      switch (dateFilter) {
+        case 'today':
+          startDate.setHours(0, 0, 0, 0);
+          break;
+        case 'week':
+          startDate.setDate(now.getDate() - 7);
+          break;
+        case 'month':
+          startDate.setMonth(now.getMonth() - 1);
+          break;
+      }
+      
+      where.created_at = {
+        [Op.gte]: startDate
+      };
+    }
+
+    // 검색어 필터
+    if (query && query.trim().length > 0) {
+      where[Op.or] = [
+        { personality_analysis: { [Op.iLike]: `%${query}%` } },
+        { career_recommendations: { [Op.iLike]: `%${query}%` } },
+        { hobby_suggestions: { [Op.iLike]: `%${query}%` } },
+        { travel_recommendations: { [Op.iLike]: `%${query}%` } },
+        { additional_insights: { [Op.iLike]: `%${query}%` } }
+      ];
+    }
 
     // 전체 개수 조회
     const { count, rows } = await Analysis.findAndCountAll({
-      where: { user_id: userId },
+      where,
       order: [['created_at', 'DESC']],
       limit,
       offset

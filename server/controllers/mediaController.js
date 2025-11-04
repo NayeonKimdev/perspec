@@ -1,4 +1,5 @@
 const Media = require('../models/Media');
+const { Op } = require('sequelize');
 const path = require('path');
 const analysisQueue = require('../services/analysisQueue');
 
@@ -97,12 +98,41 @@ const getMediaList = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
     const sort = req.query.sort || 'created_at_desc'; // created_at_desc or created_at_asc
+    const analysisStatus = req.query.analysis_status; // completed, pending, analyzing, failed, all
+    const dateFilter = req.query.date_filter; // today, week, month, all
     
     const offset = (page - 1) * limit;
     const orderDirection = sort === 'created_at_asc' ? 'ASC' : 'DESC';
     
     // 조건 설정
     const where = { user_id: userId };
+    
+    // 분석 상태 필터
+    if (analysisStatus && analysisStatus !== 'all') {
+      where.analysis_status = analysisStatus;
+    }
+    
+    // 날짜 필터
+    if (dateFilter && dateFilter !== 'all') {
+      const now = new Date();
+      let startDate = new Date();
+      
+      switch (dateFilter) {
+        case 'today':
+          startDate.setHours(0, 0, 0, 0);
+          break;
+        case 'week':
+          startDate.setDate(now.getDate() - 7);
+          break;
+        case 'month':
+          startDate.setMonth(now.getMonth() - 1);
+          break;
+      }
+      
+      where.created_at = {
+        [Op.gte]: startDate
+      };
+    }
     
     const { count, rows } = await Media.findAndCountAll({
       where,
@@ -123,6 +153,82 @@ const getMediaList = async (req, res) => {
   } catch (error) {
     console.error('미디어 조회 오류:', error);
     res.status(500).json({ message: '미디어 조회 중 오류가 발생했습니다' });
+  }
+};
+
+// 이미지 검색
+const searchMedia = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const query = req.query.q;
+    const analysisStatus = req.query.analysis_status;
+    const dateFilter = req.query.date_filter;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const sort = req.query.sort || 'created_at_desc';
+    
+    const offset = (page - 1) * limit;
+    const orderDirection = sort === 'created_at_asc' ? 'ASC' : 'DESC';
+    
+    if (!query || query.trim().length === 0) {
+      return res.status(400).json({ message: '검색어를 입력해주세요' });
+    }
+    
+    // 검색 조건 구성
+    const where = {
+      user_id: userId,
+      [Op.or]: [
+        { file_name: { [Op.iLike]: `%${query}%` } }
+      ]
+    };
+    
+    // 분석 결과에서도 검색 (JSON 필드)
+    // 분석 상태 필터
+    if (analysisStatus && analysisStatus !== 'all') {
+      where.analysis_status = analysisStatus;
+    }
+    
+    // 날짜 필터
+    if (dateFilter && dateFilter !== 'all') {
+      const now = new Date();
+      let startDate = new Date();
+      
+      switch (dateFilter) {
+        case 'today':
+          startDate.setHours(0, 0, 0, 0);
+          break;
+        case 'week':
+          startDate.setDate(now.getDate() - 7);
+          break;
+        case 'month':
+          startDate.setMonth(now.getMonth() - 1);
+          break;
+      }
+      
+      where.created_at = {
+        [Op.gte]: startDate
+      };
+    }
+    
+    const { count, rows } = await Media.findAndCountAll({
+      where,
+      limit,
+      offset,
+      order: [['created_at', orderDirection]]
+    });
+    
+    const totalPages = Math.ceil(count / limit);
+    
+    res.json({
+      media: rows,
+      total: count,
+      page,
+      totalPages,
+      query
+    });
+  } catch (error) {
+    console.error('이미지 검색 오류:', error);
+    res.status(500).json({ message: '이미지 검색 중 오류가 발생했습니다' });
   }
 };
 
@@ -377,6 +483,7 @@ module.exports = {
   uploadImage,
   uploadMultipleImages,
   getMediaList,
+  searchMedia,
   deleteMedia,
   getAnalysisStatus,
   getAnalysisSummary,

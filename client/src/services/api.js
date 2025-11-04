@@ -122,6 +122,11 @@ export const mediaApi = {
     return api.get('/media/list', { params });
   },
 
+  // 이미지 검색
+  searchMedia: (params = {}) => {
+    return api.get('/media/search', { params });
+  },
+
   // 미디어 삭제
   deleteMedia: (id) => {
     return api.delete(`/media/${id}`);

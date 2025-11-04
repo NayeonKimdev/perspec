@@ -82,6 +82,11 @@ const Navigation = () => {
       title: '통계 대시보드',
       path: '/analytics',
       icon: BarChart3
+    },
+    {
+      title: '설정',
+      path: '/settings',
+      icon: Settings
     }
   ];
 
@@ -128,6 +133,8 @@ const Navigation = () => {
                         ? 'bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/30 dark:to-indigo-900/30 text-purple-700 dark:text-purple-300 font-semibold'
                         : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                     }`}
+                    aria-label={item.title}
+                    aria-current={isItemActive ? 'page' : undefined}
                   >
                     <Icon className="w-5 h-5" />
                     <span>{item.title}</span>
@@ -147,8 +154,10 @@ const Navigation = () => {
                             ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 font-semibold'
                             : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
                         }`}
+                        aria-label={subItem.title}
+                        aria-current={isActive(subItem.path) ? 'page' : undefined}
                       >
-                        <span className="w-2 h-2 rounded-full bg-gray-400 ml-2" />
+                        <span className="w-2 h-2 rounded-full bg-gray-400 ml-2" aria-hidden="true" />
                         <span>{subItem.title}</span>
                       </button>
                     ))}
@@ -200,6 +209,8 @@ const Navigation = () => {
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="p-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+              aria-label={mobileMenuOpen ? '메뉴 닫기' : '메뉴 열기'}
+              aria-expanded={mobileMenuOpen}
             >
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
@@ -248,6 +259,8 @@ const Navigation = () => {
                             ? 'bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/30 dark:to-indigo-900/30 text-purple-700 dark:text-purple-300 font-semibold'
                             : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                         }`}
+                        aria-label={item.title}
+                        aria-current={isActive(item.path) ? 'page' : undefined}
                       >
                         <Icon className="w-5 h-5" />
                         <span>{item.title}</span>
@@ -267,8 +280,10 @@ const Navigation = () => {
                                 ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 font-semibold'
                                 : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
                             }`}
+                            aria-label={subItem.title}
+                            aria-current={isActive(subItem.path) ? 'page' : undefined}
                           >
-                            <span className="w-2 h-2 rounded-full bg-gray-400 ml-2" />
+                            <span className="w-2 h-2 rounded-full bg-gray-400 ml-2" aria-hidden="true" />
                             <span>{subItem.title}</span>
                           </button>
                         ))}
@@ -286,10 +301,9 @@ const Navigation = () => {
                 </div>
                 
                 <button
-                  onClick={() => {
-                    handleNavClick('/dashboard');
-                  }}
+                  onClick={() => handleNavClick('/settings')}
                   className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  aria-label="설정"
                 >
                   <Settings className="w-5 h-5" />
                   <span>설정</span>
@@ -297,6 +311,7 @@ const Navigation = () => {
                 <button
                   onClick={handleLogout}
                   className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                  aria-label="로그아웃"
                 >
                   <LogOut className="w-5 h-5" />
                   <span>로그아웃</span>

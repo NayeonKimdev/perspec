@@ -45,13 +45,20 @@ const ReportDetail = () => {
         return;
       }
 
+      // PDF 생성 전에 스크롤을 맨 위로 이동
+      window.scrollTo(0, 0);
+      await new Promise(resolve => setTimeout(resolve, 300));
+
       const canvas = await html2canvas(element, {
         scale: 2,
         useCORS: true,
-        logging: false
+        logging: false,
+        backgroundColor: '#ffffff',
+        windowWidth: element.scrollWidth,
+        windowHeight: element.scrollHeight
       });
 
-      const imgData = canvas.toDataURL('image/png');
+      const imgData = canvas.toDataURL('image/png', 0.95);
       const pdf = new jsPDF('p', 'mm', 'a4');
       
       const imgWidth = 210; // A4 width in mm
@@ -60,9 +67,11 @@ const ReportDetail = () => {
       let heightLeft = imgHeight;
       let position = 0;
 
+      // 첫 페이지 추가
       pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
       heightLeft -= pageHeight;
 
+      // 여러 페이지 추가
       while (heightLeft >= 0) {
         position = heightLeft - imgHeight;
         pdf.addPage();
@@ -70,7 +79,12 @@ const ReportDetail = () => {
         heightLeft -= pageHeight;
       }
 
-      pdf.save(`${report?.title || 'report'}.pdf`);
+      // 파일명 생성 (제목에서 특수문자 제거)
+      const fileName = (report?.title || 'report')
+        .replace(/[^a-z0-9가-힣]/gi, '_')
+        .substring(0, 50) + '.pdf';
+      
+      pdf.save(fileName);
       toast.success('PDF 다운로드가 완료되었습니다!');
     } catch (error) {
       console.error('PDF 다운로드 실패:', error);
@@ -85,7 +99,7 @@ const ReportDetail = () => {
       <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:from-indigo-900/20 dark:via-purple-900/20 dark:to-pink-900/20 flex items-center justify-center transition-colors duration-200">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">레포트를 불러오는 중...</p>
+          <p className="text-gray-600 dark:text-gray-400">레포트를 불러오는 중...</p>
         </div>
       </div>
     );
@@ -95,7 +109,7 @@ const ReportDetail = () => {
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:from-indigo-900/20 dark:via-purple-900/20 dark:to-pink-900/20 flex items-center justify-center transition-colors duration-200">
         <div className="text-center">
-          <p className="text-red-600 mb-4">{error || '레포트를 찾을 수 없습니다.'}</p>
+          <p className="text-red-600 dark:text-red-400 mb-4">{error || '레포트를 찾을 수 없습니다.'}</p>
           <button
             onClick={() => navigate('/reports')}
             className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
@@ -271,9 +285,9 @@ const ReportDetail = () => {
                 {report.career_suggestions.map((career, index) => (
                   <div
                     key={index}
-                    className="p-4 bg-blue-50 border border-blue-200 rounded-lg"
+                    className="p-4 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg"
                   >
-                    <p className="text-gray-800 font-medium">{career}</p>
+                    <p className="text-gray-800 dark:text-gray-200 font-medium">{career}</p>
                   </div>
                 ))}
               </div>
@@ -290,8 +304,8 @@ const ReportDetail = () => {
               <ul className="space-y-3">
                 {report.lifestyle_recommendations.map((recommendation, index) => (
                   <li key={index} className="flex items-start space-x-3">
-                    <div className="w-2 h-2 bg-purple-500 rounded-full mt-2 flex-shrink-0" />
-                    <p className="text-gray-700">{recommendation}</p>
+                    <div className="w-2 h-2 bg-purple-500 dark:bg-purple-400 rounded-full mt-2 flex-shrink-0" />
+                    <p className="text-gray-700 dark:text-gray-300">{recommendation}</p>
                   </li>
                 ))}
               </ul>
@@ -305,7 +319,7 @@ const ReportDetail = () => {
                 <TrendingUp className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
                 <span>관계 및 소통 스타일</span>
               </h2>
-              <div className="text-gray-700 leading-relaxed whitespace-pre-line">
+              <div className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line">
                 {report.relationship_style}
               </div>
             </section>
@@ -321,10 +335,10 @@ const ReportDetail = () => {
               <ol className="space-y-4">
                 {report.growth_roadmap.map((step, index) => (
                   <li key={index} className="flex items-start space-x-4">
-                    <div className="flex-shrink-0 w-8 h-8 bg-indigo-600 text-white rounded-full flex items-center justify-center font-bold">
+                    <div className="flex-shrink-0 w-8 h-8 bg-indigo-600 dark:bg-indigo-500 text-white rounded-full flex items-center justify-center font-bold">
                       {index + 1}
                     </div>
-                    <p className="text-gray-700 pt-1">{step}</p>
+                    <p className="text-gray-700 dark:text-gray-300 pt-1">{step}</p>
                   </li>
                 ))}
               </ol>
@@ -334,16 +348,16 @@ const ReportDetail = () => {
           {/* 주의사항 */}
           {report.cautions && report.cautions.length > 0 && (
             <section id="cautions" className="mb-12">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center space-x-2">
-                <AlertTriangle className="w-6 h-6 text-yellow-600" />
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 flex items-center space-x-2">
+                <AlertTriangle className="w-6 h-6 text-yellow-600 dark:text-yellow-400" />
                 <span>주의사항 및 조언</span>
               </h2>
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+              <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-6">
                 <ul className="space-y-3">
                   {report.cautions.map((caution, index) => (
                     <li key={index} className="flex items-start space-x-3">
-                      <div className="w-2 h-2 bg-yellow-600 rounded-full mt-2 flex-shrink-0" />
-                      <p className="text-yellow-900">{caution}</p>
+                      <div className="w-2 h-2 bg-yellow-600 dark:bg-yellow-400 rounded-full mt-2 flex-shrink-0" />
+                      <p className="text-yellow-900 dark:text-yellow-200">{caution}</p>
                     </li>
                   ))}
                 </ul>
