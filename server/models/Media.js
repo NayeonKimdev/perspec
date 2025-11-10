@@ -1,6 +1,33 @@
+/**
+ * @fileoverview Media 모델 정의
+ * @module models/Media
+ */
+
 const { DataTypes } = require('sequelize');
 const sequelize = require('./index');
 
+/**
+ * Media 모델
+ * @typedef {Object} MediaAttributes
+ * @property {string} id - 미디어 UUID
+ * @property {string} user_id - 사용자 UUID (외래키)
+ * @property {string} file_name - 원본 파일명
+ * @property {string} file_path - 파일 저장 경로
+ * @property {string} file_type - MIME 타입
+ * @property {number} file_size - 파일 크기 (바이트)
+ * @property {string} file_url - 파일 접근 URL
+ * @property {Object} metadata - 추가 메타데이터 (JSONB)
+ * @property {'pending'|'analyzing'|'completed'|'failed'} analysis_status - 분석 상태
+ * @property {Object|null} analysis_result - 분석 결과 (JSONB)
+ * @property {Date|null} analyzed_at - 분석 완료일시
+ * @property {string|null} analysis_error - 분석 오류 메시지
+ * @property {Date} created_at - 생성일시
+ * @property {Date} updated_at - 수정일시
+ */
+
+/**
+ * @type {import('sequelize').ModelCtor<import('sequelize').Model<MediaAttributes>>}
+ */
 const Media = sequelize.define('Media', {
   id: {
     type: DataTypes.UUID,

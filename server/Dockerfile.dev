@@ -1,0 +1,36 @@
+# Node.js 18 Alpine 이미지 사용 (개발용)
+FROM node:18-alpine
+
+# 작업 디렉토리 설정
+WORKDIR /app
+
+# 패키지 파일 복사
+COPY server/package*.json ./
+
+# 모든 의존성 설치 (개발 의존성 포함)
+RUN npm install
+
+# 사용자 생성 (보안)
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001
+
+# 로그 및 업로드 디렉토리 생성 (사용자 변경 전)
+RUN mkdir -p logs uploads/images uploads/documents/txt uploads/documents/json uploads/documents/other uploads/temp && \
+    chown -R nodejs:nodejs /app
+
+# 포트 노출
+EXPOSE 5000
+
+# 엔트리포인트 스크립트 생성 (볼륨 권한 조정)
+RUN echo '#!/bin/sh' > /entrypoint.sh && \
+    echo 'chown -R nodejs:nodejs /app/logs /app/uploads 2>/dev/null || true' >> /entrypoint.sh && \
+    echo 'exec su-exec nodejs "$@"' >> /entrypoint.sh && \
+    chmod +x /entrypoint.sh && \
+    apk add --no-cache su-exec
+
+# 엔트리포인트 설정
+ENTRYPOINT ["/entrypoint.sh"]
+
+# 개발 서버 시작 (nodemon)
+CMD ["npm", "run", "dev"]
+

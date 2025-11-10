@@ -1,0 +1,21 @@
+# EditorConfig 설정
+# 에디터 간 일관된 코딩 스타일 유지
+
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{js,jsx,json,yml,yaml}]
+indent_style = space
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false
+
+[*.{png,jpg,jpeg,gif}]
+# 바이너리 파일은 편집하지 않음
+

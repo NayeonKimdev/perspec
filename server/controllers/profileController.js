@@ -1,6 +1,17 @@
-const Profile = require('../models/Profile');
+/**
+ * @fileoverview 프로필 컨트롤러
+ * @module controllers/profileController
+ */
 
-// 프로필 저장 (생성 또는 업데이트)
+const Profile = require('../models/Profile');
+const { logActivity, ActivityType } = require('../utils/activityLogger');
+
+/**
+ * 프로필 저장 (생성 또는 업데이트)
+ * @param {import('express').Request & { user: { id: string } }} req - Express 요청 객체
+ * @param {import('express').Response} res - Express 응답 객체
+ * @returns {Promise<void>}
+ */
 const saveProfile = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -27,6 +38,13 @@ const saveProfile = async (req, res) => {
         other_info
       });
       
+      // 활동 로깅
+      await logActivity(userId, ActivityType.PROFILE_UPDATE, {
+        resourceType: 'profile',
+        resourceId: profile.id,
+        req
+      });
+      
       return res.status(200).json({
         message: '프로필이 업데이트되었습니다.',
         profile
@@ -48,6 +66,14 @@ const saveProfile = async (req, res) => {
         other_info
       });
       
+      // 활동 로깅 (프로필 생성)
+      await logActivity(userId, ActivityType.PROFILE_UPDATE, {
+        resourceType: 'profile',
+        resourceId: profile.id,
+        metadata: { action: 'create' },
+        req
+      });
+      
       return res.status(200).json({
         message: '프로필이 생성되었습니다.',
         profile
@@ -63,7 +89,12 @@ const saveProfile = async (req, res) => {
   }
 };
 
-// 프로필 조회
+/**
+ * 프로필 조회
+ * @param {import('express').Request & { user: { id: string } }} req - Express 요청 객체
+ * @param {import('express').Response} res - Express 응답 객체
+ * @returns {Promise<void>}
+ */
 const getProfile = async (req, res) => {
   try {
     const userId = req.user.id;

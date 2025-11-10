@@ -7,7 +7,21 @@
     "dev": "concurrently \"npm run server\" \"npm run client\"",
     "server": "cd server && npm run dev",
     "client": "cd client && npm run dev",
-    "install-all": "npm install && cd server && npm install && cd ../client && npm install"
+    "install-all": "npm install && cd server && npm install && cd ../client && npm install",
+    "docker:build": "docker-compose build",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f",
+    "docker:dev": "docker-compose -f docker-compose.dev.yml up",
+    "migrate": "docker-compose exec api npm run migrate || node scripts/migrate.js up",
+    "migrate:undo": "docker-compose exec api npm run migrate:undo || node scripts/migrate.js undo",
+    "migrate:status": "docker-compose exec api npm run migrate:status || node scripts/migrate.js status",
+    "backup": "docker-compose exec postgres pg_dump -U postgres perspec > backups/perspec_backup_$(date +%Y%m%d_%H%M%S).sql || node scripts/backup.js",
+    "restore": "node scripts/restore.js",
+    "lint": "cd server && npm run lint",
+    "lint:fix": "cd server && npm run lint:fix",
+    "format": "prettier --write \"**/*.{js,json,md}\" --ignore-path .prettierignore",
+    "format:check": "prettier --check \"**/*.{js,json,md}\" --ignore-path .prettierignore"
   },
   "keywords": [
     "user-analytics",
@@ -17,6 +31,7 @@
   "license": "MIT",
   "devDependencies": {
     "concurrently": "^8.2.2",
+    "prettier": "^3.3.3",
     "sequelize-cli": "^6.6.3"
   }
 }

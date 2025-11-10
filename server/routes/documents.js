@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const authenticateToken = require('../middleware/auth');
 const { uploadSingle, uploadMultiple } = require('../middleware/uploadText');
+const { uploadLimiter } = require('../middleware/security');
 const {
   uploadDocument,
   uploadMultipleDocuments,
@@ -16,11 +17,11 @@ const {
 // 모든 라우트는 인증 필요
 router.use(authenticateToken);
 
-// 텍스트 문서 업로드 (단일)
-router.post('/upload', uploadSingle, uploadDocument);
+// 텍스트 문서 업로드 (단일) - Rate Limiting 적용
+router.post('/upload', uploadLimiter, uploadSingle, uploadDocument);
 
-// 텍스트 문서 업로드 (다중)
-router.post('/upload-multiple', uploadMultiple, uploadMultipleDocuments);
+// 텍스트 문서 업로드 (다중) - Rate Limiting 적용
+router.post('/upload-multiple', uploadLimiter, uploadMultiple, uploadMultipleDocuments);
 
 // 텍스트 문서 목록 조회
 router.get('/list', getDocumentList);

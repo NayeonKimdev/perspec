@@ -13,6 +13,11 @@ client/dist/
 client/build/
 *.log
 
+# Log files
+server/logs/
+logs/
+*.log
+
 # Uploaded files
 server/uploads/
 
@@ -26,4 +31,15 @@ server/uploads/
 # OS
 .DS_Store
 Thumbs.db
+
+# Docker
+docker-compose.override.yml
+*.env
+!.env.example
+!docker-compose.env.example
+
+# Backups
+backups/
+*.sql
+*.dump
 

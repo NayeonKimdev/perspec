@@ -1,0 +1,80 @@
+services:
+  # PostgreSQL 데이터베이스
+  postgres:
+    image: postgres:15-alpine
+    container_name: perspec-postgres
+    environment:
+      POSTGRES_DB: ${DB_NAME:-perspec}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - perspec-network
+
+  # 백엔드 API 서버
+  api:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    container_name: perspec-api
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-perspec}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-password}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      CORS_ORIGIN: ${CORS_ORIGIN:-}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    ports:
+      - "${PORT:-5000}:5000"
+    volumes:
+      - ./server/logs:/app/logs
+      - ./server/uploads:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - perspec-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:5000/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # 프론트엔드 (개발용 - 선택사항)
+  # 프로덕션에서는 빌드된 정적 파일을 nginx로 서빙하는 것을 권장합니다
+  # client:
+  #   build:
+  #     context: ./client
+  #     dockerfile: Dockerfile
+  #   container_name: perspec-client
+  #   ports:
+  #     - "3000:3000"
+  #   depends_on:
+  #     - api
+  #   networks:
+  #     - perspec-network
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  perspec-network:
+    driver: bridge
+

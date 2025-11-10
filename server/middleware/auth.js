@@ -1,6 +1,27 @@
+/**
+ * @fileoverview JWT 인증 미들웨어
+ * @module middleware/auth
+ */
+
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
+/**
+ * Express Request 객체에 사용자 정보를 추가하는 타입 정의
+ * @typedef {Object} AuthenticatedRequest
+ * @property {Object} user - 인증된 사용자 정보
+ * @property {string} user.id - 사용자 ID
+ * @property {string} user.email - 사용자 이메일
+ */
+
+/**
+ * JWT 인증 미들웨어
+ * Authorization 헤더에서 JWT 토큰을 추출하여 검증하고, 사용자 정보를 req.user에 추가합니다.
+ * @param {import('express').Request & AuthenticatedRequest} req - Express 요청 객체
+ * @param {import('express').Response} res - Express 응답 객체
+ * @param {import('express').NextFunction} next - Express next 함수
+ * @returns {Promise<void>}
+ */
 const authMiddleware = async (req, res, next) => {
   try {
     // Authorization 헤더에서 토큰 추출

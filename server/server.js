@@ -1,90 +1,53 @@
 const express = require('express');
 const cors = require('cors');
+const compression = require('compression');
 const dotenv = require('dotenv');
 const path = require('path');
 const { ensureDirectoriesExist } = require('./config/storage');
+const { validateAndThrow } = require('./config/envValidator');
+const envConfig = require('./config/environments');
+const logger = require('./utils/logger');
+const requestLogger = require('./middleware/requestLogger');
+const { swaggerSetup } = require('./config/swagger');
+const { trackError } = require('./utils/errorTracker');
+const {
+  securityHeaders,
+  apiLimiter,
+  authLimiter,
+  uploadLimiter,
+  analysisLimiter,
+} = require('./middleware/security');
 
 // 환경변수 로드
 dotenv.config();
 
+// 환경별 설정 로드
+const nodeEnv = process.env.NODE_ENV || 'development';
+const appConfig = envConfig.getConfig();
+
+// 환경변수 검증 (개발 환경에서는 경고만, 프로덕션에서는 에러)
+try {
+  if (nodeEnv === 'production') {
+    validateAndThrow('production');
+  } else {
+    const result = require('./config/envValidator').validateEnvVars(nodeEnv);
+    if (!result.isValid) {
+      logger.warn('일부 환경변수가 설정되지 않았습니다. 개발 환경에서는 계속 진행합니다.', {
+        missing: result.missing
+      });
+    }
+  }
+} catch (error) {
+  logger.error('환경변수 검증 실패', { error: error.message });
+  if (nodeEnv === 'production') {
+    process.exit(1);
+  }
+}
+
 // 업로드 디렉토리 생성
 ensureDirectoriesExist();
 
-// 데이터베이스 연결 테스트를 위해 auth 라우트를 조건부로 로드
-let authRoutes;
-let profileRoutes;
-let analysisRoutes;
-let mediaRoutes;
-let documentRoutes;
-let mbtiRoutes;
-let emotionRoutes;
-let reportRoutes;
-
-try {
-  authRoutes = require('./routes/auth');
-  console.log('✓ Auth 라우트 로드 성공');
-} catch (error) {
-  console.log('✗ Auth 라우트 로드 실패:', error.message);
-  authRoutes = null;
-}
-
-try {
-  profileRoutes = require('./routes/profile');
-  console.log('✓ Profile 라우트 로드 성공');
-} catch (error) {
-  console.log('✗ Profile 라우트 로드 실패:', error.message);
-  profileRoutes = null;
-}
-
-try {
-  analysisRoutes = require('./routes/analysis');
-  console.log('✓ Analysis 라우트 로드 성공');
-} catch (error) {
-  console.log('✗ Analysis 라우트 로드 실패:', error.message);
-  console.error(error.stack);
-  analysisRoutes = null;
-}
-
-try {
-  mediaRoutes = require('./routes/media');
-  console.log('✓ Media 라우트 로드 성공');
-} catch (error) {
-  console.log('✗ Media 라우트 로드 실패:', error.message);
-  mediaRoutes = null;
-}
-
-try {
-  documentRoutes = require('./routes/documents');
-  console.log('✓ Documents 라우트 로드 성공');
-} catch (error) {
-  console.log('✗ Documents 라우트 로드 실패:', error.message);
-  console.error('✗ Documents 라우트 로드 실패 상세:', error.stack);
-  documentRoutes = null;
-}
-
-try {
-  mbtiRoutes = require('./routes/mbti');
-  console.log('✓ MBTI 라우트 로드 성공');
-} catch (error) {
-  console.log('✗ MBTI 라우트 로드 실패:', error.message);
-  mbtiRoutes = null;
-}
-
-try {
-  emotionRoutes = require('./routes/emotion');
-  console.log('✓ Emotion 라우트 로드 성공');
-} catch (error) {
-  console.log('✗ Emotion 라우트 로드 실패:', error.message);
-  emotionRoutes = null;
-}
-
-try {
-  reportRoutes = require('./routes/reports');
-  console.log('✓ Reports 라우트 로드 성공');
-} catch (error) {
-  console.log('✗ Reports 라우트 로드 실패:', error.message);
-  reportRoutes = null;
-}
+// API 버전 관리 라우터는 routes/v1.js에서 처리하므로 여기서는 제거
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -92,118 +55,284 @@ const PORT = process.env.PORT || 5000;
 // 긴 작업을 위한 타임아웃 설정 (3분)
 app.timeout = 180000; // 3분
 
-// 미들웨어
-app.use(cors());
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+// 보안 미들웨어 (가장 먼저 적용)
+app.use(securityHeaders);
+
+// Trust Proxy 설정 (리버스 프록시 사용 시)
+if (appConfig.trustProxy) {
+  app.set('trust proxy', true);
+}
+
+// CORS 설정 (환경별로 다르게 설정)
+const corsOptions = {
+  origin: function (origin, callback) {
+    // 개발 환경에서는 모든 origin 허용
+    if (envConfig.isDevelopment || !origin) {
+      return callback(null, true);
+    }
+
+    // 프로덕션 환경에서는 설정된 origin만 허용
+    const allowedOrigins = appConfig.corsOrigin && appConfig.corsOrigin !== '*'
+      ? appConfig.corsOrigin.split(',').map((o) => o.trim())
+      : [];
+
+    if (allowedOrigins.length === 0) {
+      // CORS_ORIGIN이 설정되지 않았으면 모든 origin 허용 (경고)
+      logger.warn('CORS_ORIGIN이 설정되지 않아 모든 origin을 허용합니다.');
+      return callback(null, true);
+    }
+
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      logger.security('CORS 차단', { origin });
+      callback(new Error('CORS 정책에 의해 허용되지 않은 origin입니다.'));
+    }
+  },
+  credentials: true,
+  optionsSuccessStatus: 200,
+};
+
+app.use(cors(corsOptions));
+
+// 응답 압축 미들웨어 (설정에 따라)
+if (appConfig.compressionEnabled) {
+  app.use(compression());
+}
+
+// 요청 로깅 미들웨어
+app.use(requestLogger);
+
+// Body parser 미들웨어 (환경별 설정)
+app.use(express.json({ limit: appConfig.maxRequestBodySize || '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: appConfig.maxRequestBodySize || '10mb' }));
 
 // 정적 파일 제공 (업로드된 이미지)
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// 라우트
-if (authRoutes) {
-  app.use('/api/auth', authRoutes);
-} else {
-  app.use('/api/auth', (req, res) => {
-    res.status(503).json({ message: '데이터베이스 연결이 필요합니다.' });
+// API 버전 관리 라우터 로드
+let apiRouter;
+try {
+  apiRouter = require('./routes/api');
+  logger.debug('API 라우터 로드 성공');
+} catch (error) {
+  logger.error('API 라우터 로드 실패', { error: error.message });
+  apiRouter = null;
+}
+
+// 기존 API 엔드포인트와의 호환성을 위해 프록시 미들웨어
+// /api/auth/login -> /api/v1/auth/login으로 내부 리다이렉트
+// 프로덕션에서는 제거하거나 deprecated 경고 메시지 추가 가능
+// 이 미들웨어는 /api 라우터 이전에 배치되어야 함
+if (nodeEnv !== 'production' && apiRouter) {
+  // 개발 환경에서만 기존 엔드포인트를 v1으로 프록시
+  const legacyPaths = ['/auth', '/profile', '/media', '/documents', '/analysis', '/mbti', '/emotion', '/reports'];
+  
+  legacyPaths.forEach((legacyPath) => {
+    // 모든 HTTP 메서드와 경로에 대해 처리
+    app.all(`/api${legacyPath}*`, (req, res, next) => {
+      // req.path는 이미 /api/auth/login 형태로 들어옴
+      // /api/auth 부분을 제거하고 나머지 경로만 추출
+      const apiPrefix = `/api${legacyPath}`;
+      let remainingPath = req.path;
+      
+      // /api/auth로 시작하는 경우 해당 부분 제거
+      if (remainingPath.startsWith(apiPrefix)) {
+        remainingPath = remainingPath.substring(apiPrefix.length);
+      }
+      
+      // 빈 경로인 경우 /로 설정
+      if (!remainingPath || remainingPath === '') {
+        remainingPath = '/';
+      }
+      
+      // v1 경로로 변경 (예: /v1/auth/login)
+      const v1Path = `/v1${legacyPath}${remainingPath}`;
+      
+      // 디버깅 로그
+      logger.debug('레거시 경로 프록시', {
+        originalPath: req.path,
+        remainingPath,
+        originalUrl: req.originalUrl,
+        v1Path,
+        method: req.method
+      });
+      
+      // 원본 URL 정보 저장 (에러 처리용)
+      const originalUrl = req.originalUrl;
+      const originalBaseUrl = req.baseUrl;
+      const originalPath = req.path;
+      
+      // URL을 v1 경로로 재설정
+      req.url = v1Path;
+      req.baseUrl = '/api';
+      req.originalUrl = `/api${v1Path}`;
+      
+      // apiRouter를 직접 호출하여 처리
+      apiRouter(req, res, (err) => {
+        if (err) {
+          // 에러 발생 시 원본 URL로 복원하여 에러 핸들러에 전달
+          req.url = originalPath;
+          req.baseUrl = originalBaseUrl;
+          req.originalUrl = originalUrl;
+          logger.error('레거시 경로 프록시 에러', {
+            error: err.message,
+            originalUrl,
+            v1Path
+          });
+          return next(err);
+        }
+        // 성공적으로 처리된 경우 응답이 이미 전송되었으므로 아무것도 하지 않음
+      });
+    });
   });
 }
 
-if (profileRoutes) {
-  app.use('/api/profile', profileRoutes);
+// API 버전 관리 라우트 등록
+if (apiRouter) {
+  app.use('/api', apiRouter);
 } else {
-  app.use('/api/profile', (req, res) => {
-    res.status(503).json({ message: '데이터베이스 연결이 필요합니다.' });
-  });
-}
-
-if (analysisRoutes) {
-  app.use('/api/analysis', analysisRoutes);
-} else {
-  app.use('/api/analysis', (req, res) => {
-    res.status(503).json({ message: '데이터베이스 연결이 필요합니다.' });
-  });
-}
-
-if (mediaRoutes) {
-  app.use('/api/media', mediaRoutes);
-} else {
-  app.use('/api/media', (req, res) => {
-    res.status(503).json({ message: '데이터베이스 연결이 필요합니다.' });
-  });
-}
-
-if (documentRoutes) {
-  app.use('/api/documents', documentRoutes);
-} else {
-  app.use('/api/documents', (req, res) => {
-    res.status(503).json({ message: '데이터베이스 연결이 필요합니다.' });
-  });
-}
-
-if (mbtiRoutes) {
-  app.use('/api/mbti', mbtiRoutes);
-} else {
-  app.use('/api/mbti', (req, res) => {
-    res.status(503).json({ message: '데이터베이스 연결이 필요합니다.' });
-  });
-}
-
-if (emotionRoutes) {
-  app.use('/api/emotion', emotionRoutes);
-} else {
-  app.use('/api/emotion', (req, res) => {
-    res.status(503).json({ message: '데이터베이스 연결이 필요합니다.' });
-  });
-}
-
-if (reportRoutes) {
-  app.use('/api/reports', reportRoutes);
-} else {
-  app.use('/api/reports', (req, res) => {
-    res.status(503).json({ message: '데이터베이스 연결이 필요합니다.' });
+  app.use('/api', (req, res) => {
+    res.status(503).json({ message: 'API 라우터를 로드할 수 없습니다.' });
   });
 }
 
 // 기본 라우트
+/**
+ * @swagger
+ * /:
+ *   get:
+ *     summary: 서버 상태 확인
+ *     tags: [헬스]
+ *     responses:
+ *       200:
+ *         description: 서버가 정상적으로 실행 중입니다
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Perspec API 서버가 실행 중입니다.
+ */
 app.get('/', (req, res) => {
   res.json({ message: 'Perspec API 서버가 실행 중입니다.' });
 });
 
-// 에러 핸들링 미들웨어
+// Swagger API 문서 설정 (환경별 제어)
+if (appConfig.enableSwagger) {
+  try {
+    swaggerSetup(app);
+    logger.info('Swagger API 문서 설정 완료', { path: '/api-docs' });
+  } catch (error) {
+    logger.warn('Swagger 설정 실패', { error: error.message });
+  }
+} else {
+  logger.debug('Swagger API 문서가 비활성화되어 있습니다.');
+}
+
+// 헬스 체크 엔드포인트 (인증 불필요)
+try {
+  const healthController = require('./controllers/healthController');
+  app.get('/health', healthController.healthCheck);
+  app.get('/health/live', healthController.livenessProbe);
+  app.get('/health/ready', healthController.readinessProbe);
+  logger.debug('헬스 체크 엔드포인트 등록 완료');
+} catch (error) {
+  logger.warn('헬스 체크 컨트롤러를 로드할 수 없습니다', { error: error.message });
+}
+
+// 에러 핸들링 미들웨어 (환경별 에러 정보 표시)
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ message: '서버 내부 오류가 발생했습니다.' });
+  // 에러 추적 및 로깅
+  const errorInfo = trackError(err, {
+    middleware: 'errorHandler',
+    route: req.path,
+    method: req.method
+  }, req);
+  
+  logger.error('서버 에러 발생', {
+    error: err.message,
+    stack: appConfig.showErrorDetails ? err.stack : undefined,
+    url: req.url,
+    method: req.method,
+    errorType: errorInfo.type,
+    severity: errorInfo.severity
+  });
+  
+  const errorResponse = {
+    message: '서버 내부 오류가 발생했습니다.'
+  };
+  
+  // 개발 환경에서는 에러 상세 정보 포함
+  if (appConfig.showErrorDetails) {
+    errorResponse.error = err.message;
+    errorResponse.stack = err.stack;
+    errorResponse.type = errorInfo.type;
+  }
+  
+  res.status(err.status || 500).json(errorResponse);
 });
 
 // 404 핸들러
 app.use('*', (req, res) => {
+  logger.warn('404 Not Found', { url: req.url, method: req.method });
   res.status(404).json({ message: '요청한 리소스를 찾을 수 없습니다.' });
 });
 
 // 분석 큐 초기화 및 시작
 try {
-  console.log('[서버 시작] 분석 큐 모듈 로드 시도...');
+  logger.debug('분석 큐 모듈 로드 시도');
   const analysisQueue = require('./services/analysisQueue');
-  console.log('[서버 시작] 분석 큐 모듈 로드 성공');
+  logger.debug('분석 큐 모듈 로드 성공');
   
   // 비동기 초기화를 서버 시작 후에 실행
   setTimeout(async () => {
     try {
-      console.log('[서버 시작] 분석 큐 초기화 시작...');
+      logger.debug('분석 큐 초기화 시작');
       await analysisQueue.restorePendingItems();
-      console.log('[서버 시작] 분석 큐 복구 완료, 처리 시작...');
+      logger.debug('분석 큐 복구 완료, 처리 시작');
       analysisQueue.startProcessing();
-      console.log('✓ 이미지 분석 큐가 시작되었습니다.');
+      logger.debug('이미지 분석 큐가 시작되었습니다');
     } catch (error) {
-      console.error('✗ 이미지 분석 큐 시작 실패:', error.message);
-      console.error('✗ 에러 스택:', error.stack);
+      logger.error('이미지 분석 큐 시작 실패', {
+        error: error.message,
+        stack: error.stack
+      });
     }
   }, 2000); // 서버가 완전히 시작된 후 2초 뒤에 초기화
   
 } catch (error) {
-  console.log('✗ 이미지 분석 큐를 로드할 수 없습니다:', error.message);
-  console.log('✗ 에러 스택:', error.stack);
+  logger.error('이미지 분석 큐를 로드할 수 없습니다', {
+    error: error.message,
+    stack: error.stack
+  });
+}
+
+// 파일 정리 스케줄러 초기화 및 시작
+try {
+  const fileCleanupScheduler = require('./services/fileCleanupScheduler');
+  setTimeout(() => {
+    try {
+      fileCleanupScheduler.start();
+      logger.debug('파일 정리 스케줄러가 시작되었습니다');
+    } catch (error) {
+      logger.error('파일 정리 스케줄러 시작 실패', {
+        error: error.message,
+        stack: error.stack
+      });
+    }
+  }, 5000); // 서버가 완전히 시작된 후 5초 뒤에 시작
+} catch (error) {
+  logger.warn('파일 정리 스케줄러를 로드할 수 없습니다', {
+    error: error.message
+  });
+}
+
+// 프로덕션 설정 검증
+if (envConfig.isProduction) {
+  envConfig.validateProductionConfig();
 }
 
 // 서버 시작 전 데이터베이스 연결 테스트
@@ -211,32 +340,47 @@ const testDatabaseConnection = async () => {
   try {
     const sequelize = require('./models/index');
     await sequelize.authenticate();
-    console.log('✓ 데이터베이스 연결 성공');
+    logger.info('데이터베이스 연결 성공', {
+      host: process.env.DB_HOST || 'localhost',
+      port: process.env.DB_PORT || 5432,
+      database: process.env.DB_NAME || '(설정 안됨)',
+      environment: nodeEnv
+    });
     return true;
   } catch (error) {
-    console.error('✗ 데이터베이스 연결 실패:', error.message);
-    console.error('✗ 연결 정보:', {
+    logger.error('데이터베이스 연결 실패', {
+      error: error.message,
       host: process.env.DB_HOST || 'localhost',
       port: process.env.DB_PORT || 5432,
       database: process.env.DB_NAME || '(설정 안됨)',
       user: process.env.DB_USER || '(설정 안됨)',
-      password: process.env.DB_PASSWORD ? '***' : '(설정 안됨)'
+      password: process.env.DB_PASSWORD ? '***' : '(설정 안됨)',
+      environment: nodeEnv
     });
-    console.error('✗ 해결 방법:');
-    console.error('  1. PostgreSQL이 실행 중인지 확인하세요');
-    console.error('  2. server/.env 파일의 DB_* 환경 변수를 확인하세요');
-    console.error('  3. 데이터베이스가 존재하는지 확인하세요: createdb perspec');
     return false;
   }
 };
 
 // 서버 시작
 app.listen(PORT, async () => {
-  console.log(`서버가 포트 ${PORT}에서 실행 중입니다.`);
+  logger.info('서버 시작', { 
+    port: PORT, 
+    environment: nodeEnv,
+    logLevel: appConfig.logLevel,
+    compression: appConfig.compressionEnabled,
+    swagger: appConfig.enableSwagger
+  });
   
   // 데이터베이스 연결 테스트
-  console.log('[데이터베이스 연결 테스트 시작...]');
   await testDatabaseConnection();
+}).on('error', (error) => {
+  logger.error('서버 시작 실패', {
+    error: error.message,
+    stack: error.stack,
+    code: error.code
+  });
+  console.error('서버 시작 실패:', error);
+  process.exit(1);
 });
 
 module.exports = app;

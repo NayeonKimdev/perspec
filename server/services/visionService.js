@@ -1,3 +1,9 @@
+/**
+ * @fileoverview 이미지 분석 서비스
+ * OpenAI Vision API를 사용하여 이미지를 분석합니다.
+ * @module services/visionService
+ */
+
 const { OpenAI } = require('openai');
 const fs = require('fs').promises;
 const path = require('path');
@@ -5,6 +11,11 @@ const path = require('path');
 // OpenAI 클라이언트를 지연 초기화
 let openai = null;
 
+/**
+ * OpenAI 클라이언트 가져오기 (지연 초기화)
+ * @returns {OpenAI} OpenAI 클라이언트 인스턴스
+ * @throws {Error} OPENAI_API_KEY 환경 변수가 설정되지 않은 경우
+ */
 const getOpenAIClient = () => {
   if (!openai) {
     if (!process.env.OPENAI_API_KEY) {
@@ -19,6 +30,9 @@ const getOpenAIClient = () => {
 
 /**
  * 이미지를 base64로 인코딩
+ * @param {string} imagePath - 이미지 파일 경로
+ * @returns {Promise<string>} base64로 인코딩된 이미지 문자열
+ * @throws {Error} 이미지를 읽을 수 없는 경우
  */
 const encodeImage = async (imagePath) => {
   try {
@@ -35,6 +49,7 @@ const encodeImage = async (imagePath) => {
  * 이미지를 분석하는 함수
  * @param {string} imagePath - 분석할 이미지의 파일 경로
  * @returns {Promise<Object>} 분석 결과 객체
+ * @throws {Error} 이미지를 읽을 수 없거나 분석에 실패한 경우
  */
 const analyzeImage = async (imagePath) => {
   try {

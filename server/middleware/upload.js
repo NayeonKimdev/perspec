@@ -1,6 +1,6 @@
 const multer = require('multer');
 const path = require('path');
-const { IMAGES_DIR, validateFileType, MAX_FILE_SIZE } = require('../config/storage');
+const { IMAGES_DIR, validateFileType, MAX_FILE_SIZE, sanitizeFilename } = require('../config/storage');
 
 // 저장 설정
 const storage = multer.diskStorage({
@@ -12,8 +12,12 @@ const storage = multer.diskStorage({
     const userId = req.user?.id || 'anonymous';
     const timestamp = Date.now();
     const random = Math.round(Math.random() * 1E9);
-    const ext = path.extname(file.originalname);
-    const filename = `${userId}_${timestamp}_${random}${ext}`;
+    // 원본 파일명 sanitization
+    const sanitizedOriginalName = sanitizeFilename(file.originalname);
+    const ext = path.extname(sanitizedOriginalName).toLowerCase();
+    // 확장자가 없으면 원본 파일의 확장자 사용
+    const finalExt = ext || path.extname(file.originalname).toLowerCase();
+    const filename = `${userId}_${timestamp}_${random}${finalExt}`;
     cb(null, filename);
   }
 });

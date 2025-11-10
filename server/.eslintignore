@@ -1,0 +1,17 @@
+# ESLint 및 Prettier 무시 파일
+node_modules/
+dist/
+build/
+coverage/
+logs/
+uploads/
+*.log
+.env
+.env.local
+
+# 마이그레이션 파일 (자동 생성)
+server/migrations/*.js
+
+# 빌드 출력
+server/.nyc_output/
+

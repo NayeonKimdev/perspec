@@ -103,6 +103,24 @@ const validateTextFileSize = (size) => {
   return size <= MAX_TEXT_FILE_SIZE;
 };
 
+// 파일명 sanitization (안전한 파일명으로 변환)
+const sanitizeFilename = (filename) => {
+  // 위험한 문자 제거 및 허용된 문자만 유지
+  let sanitized = filename
+    .replace(/[^a-zA-Z0-9._-]/g, '_') // 영문, 숫자, 점, 언더스코어, 하이픈만 허용
+    .replace(/\.\./g, '_') // 경로 탐색 공격 방지
+    .replace(/^\.+/, '') // 선행 점 제거
+    .replace(/\.+$/, ''); // 후행 점 제거
+  
+  // 파일명이 너무 길면 자르기
+  if (sanitized.length > 255) {
+    const ext = path.extname(sanitized);
+    sanitized = sanitized.substring(0, 255 - ext.length) + ext;
+  }
+  
+  return sanitized || 'file';
+};
+
 module.exports = {
   UPLOAD_DIR,
   IMAGES_DIR,
@@ -125,6 +143,7 @@ module.exports = {
   validateFileType,
   validateFileSize,
   validateTextFileType,
-  validateTextFileSize
+  validateTextFileSize,
+  sanitizeFilename
 };
 
