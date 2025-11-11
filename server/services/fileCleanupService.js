@@ -569,27 +569,42 @@ const runCleanup = async (options = {}) => {
   try {
     logger.debug('파일 정리 시작');
 
+    // 주의: 사용자 데이터(미디어, 문서)는 기본적으로 삭제하지 않습니다.
+    // 사용자가 명시적으로 삭제하거나, 계정이 삭제될 때까지 보관합니다.
+    // 임시 파일만 정리합니다.
+
     // 각 정리 작업 실행
-    if (options.cleanOldMedia !== false) {
+    // 사용자 미디어 파일은 삭제하지 않음 (기본값: false)
+    if (options.cleanOldMedia === true) {
       results.media = await cleanupOldMedia(options.mediaRetentionDays);
       results.totalFreedSpace += results.media.freedSpace;
+    } else {
+      logger.debug('사용자 미디어 파일 정리를 건너뜁니다 (기본적으로 보관)');
     }
 
-    if (options.cleanOldDocuments !== false) {
+    // 사용자 문서 파일은 삭제하지 않음 (기본값: false)
+    if (options.cleanOldDocuments === true) {
       results.documents = await cleanupOldDocuments(options.documentRetentionDays);
       results.totalFreedSpace += results.documents.freedSpace;
+    } else {
+      logger.debug('사용자 문서 파일 정리를 건너뜁니다 (기본적으로 보관)');
     }
 
+    // 임시 파일만 정리 (기본값: true)
     if (options.cleanTempFiles !== false) {
       results.temp = await cleanupTempFiles(options.tempRetentionDays);
       results.totalFreedSpace += results.temp.freedSpace;
     }
 
-    if (options.cleanFailedAnalysis !== false) {
+    // 실패한 분석 파일은 삭제하지 않음 (기본값: false)
+    if (options.cleanFailedAnalysis === true) {
       results.failedAnalysis = await cleanupFailedAnalysisMedia(options.failedAnalysisRetentionDays);
       results.totalFreedSpace += results.failedAnalysis.freedSpace;
+    } else {
+      logger.debug('실패한 분석 파일 정리를 건너뜁니다 (기본적으로 보관)');
     }
 
+    // 고아 파일 정리 (데이터베이스에 없는 파일만 삭제)
     if (options.cleanOrphanFiles !== false) {
       results.orphan = await cleanupOrphanFiles();
       results.totalFreedSpace += results.orphan.freedSpace;
