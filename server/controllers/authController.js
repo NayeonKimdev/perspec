@@ -7,6 +7,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { validationResult } = require('express-validator');
 const User = require('../models/User');
+const UserSocialLogin = require('../models/UserSocialLogin');
 const logger = require('../utils/logger');
 const { trackError, ErrorType } = require('../utils/errorTracker');
 const emailService = require('../services/emailService');
@@ -59,9 +60,22 @@ const register = async (req, res) => {
     });
 
     // 이메일 인증 메일 발송 (비동기, 실패해도 회원가입은 성공)
+    let emailSent = false;
+    let verificationLink = null;
     try {
-      await emailService.sendVerificationEmail(email, verificationToken);
-      logger.info('이메일 인증 메일 발송 완료', { userId: user.id, email });
+      const emailResult = await emailService.sendVerificationEmail(email, verificationToken);
+      if (emailResult.success) {
+        emailSent = true;
+        logger.info('이메일 인증 메일 발송 완료', { userId: user.id, email });
+      } else if (emailResult.skipped && emailResult.verificationLink) {
+        // 개발 환경에서 이메일 발송이 건너뛰어진 경우
+        verificationLink = emailResult.verificationLink;
+        logger.warn('이메일 발송 건너뜀 (개발 환경)', { 
+          userId: user.id, 
+          email,
+          verificationLink 
+        });
+      }
     } catch (emailError) {
       logger.error('이메일 인증 메일 발송 실패', {
         userId: user.id,
@@ -86,10 +100,18 @@ const register = async (req, res) => {
       created_at: user.created_at
     };
 
-    res.status(201).json({
+    const response = {
       message: '회원가입이 완료되었습니다.',
       user: userResponse
-    });
+    };
+
+    // 개발 환경에서 이메일 발송이 실패한 경우 인증 링크를 응답에 포함
+    if (!emailSent && verificationLink) {
+      response.verificationLink = verificationLink;
+      response.message = '회원가입이 완료되었습니다. (개발 환경: 이메일 발송이 비활성화되어 있습니다. 아래 링크로 이메일을 인증해주세요.)';
+    }
+
+    res.status(201).json(response);
 
   } catch (error) {
     const errorInfo = trackError(error, {
@@ -129,6 +151,35 @@ const login = async (req, res) => {
       logger.warn('로그인 실패 - 사용자 없음', { email });
       return res.status(401).json({
         message: '이메일 또는 비밀번호가 올바르지 않습니다.'
+      });
+    }
+
+    // 소셜 로그인 사용자인지 확인 (UserSocialLogin 테이블에서 확인)
+    const socialLogins = await UserSocialLogin.findAll({
+      where: { user_id: user.id }
+    });
+
+    if (socialLogins.length > 0) {
+      const providers = socialLogins.map(sl => {
+        const providerName = sl.provider;
+        if (providerName === 'google') return 'Google';
+        if (providerName === 'kakao') return 'Kakao';
+        if (providerName === 'naver') return 'Naver';
+        return providerName;
+      }).join(', ');
+      
+      logger.warn('로그인 실패 - 소셜 로그인 사용자', { email, userId: user.id, providers: socialLogins.map(sl => sl.provider) });
+      return res.status(400).json({
+        message: `이 계정은 ${providers} 소셜 로그인으로 가입된 계정입니다. 소셜 로그인을 사용해주세요.`,
+        providers: socialLogins.map(sl => sl.provider)
+      });
+    }
+
+    // 비밀번호가 없는 경우 (일반적으로 발생하지 않지만 안전을 위해)
+    if (!user.password) {
+      logger.warn('로그인 실패 - 비밀번호 없음', { email, userId: user.id });
+      return res.status(400).json({
+        message: '이 계정은 비밀번호 로그인을 사용할 수 없습니다. 소셜 로그인을 사용해주세요.'
       });
     }
 
@@ -366,11 +417,28 @@ const resendVerificationEmail = async (req, res) => {
 
     // 이메일 인증 메일 발송
     try {
-      await emailService.sendVerificationEmail(email, verificationToken);
-      logger.info('이메일 인증 메일 재발송 완료', { userId: user.id, email });
-      res.json({
-        message: '인증 메일이 발송되었습니다. 메일함을 확인해주세요.'
-      });
+      const emailResult = await emailService.sendVerificationEmail(email, verificationToken);
+      if (emailResult.success) {
+        logger.info('이메일 인증 메일 재발송 완료', { userId: user.id, email });
+        res.json({
+          message: '인증 메일이 발송되었습니다. 메일함을 확인해주세요.'
+        });
+      } else if (emailResult.skipped && emailResult.verificationLink) {
+        // 개발 환경에서 이메일 발송이 건너뛰어진 경우
+        logger.warn('이메일 재발송 건너뜀 (개발 환경)', { 
+          userId: user.id, 
+          email,
+          verificationLink: emailResult.verificationLink 
+        });
+        res.json({
+          message: '개발 환경: 이메일 발송이 비활성화되어 있습니다. 아래 링크로 이메일을 인증해주세요.',
+          verificationLink: emailResult.verificationLink
+        });
+      } else {
+        res.status(500).json({
+          message: '이메일 발송 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'
+        });
+      }
     } catch (emailError) {
       logger.error('이메일 인증 메일 재발송 실패', {
         userId: user.id,
@@ -555,11 +623,95 @@ const resetPassword = async (req, res) => {
   }
 };
 
+/**
+ * Google 소셜 로그인 콜백 처리
+ * Passport 미들웨어에서 인증이 완료된 후 호출됨
+ * @param {import('express').Request} req - Express 요청 객체
+ * @param {import('express').Response} res - Express 응답 객체
+ * @returns {Promise<void>}
+ */
+/**
+ * 소셜 로그인 콜백 공통 함수
+ * @param {string} provider - 소셜 로그인 제공자 이름
+ * @param {import('express').Request} req - Express 요청 객체
+ * @param {import('express').Response} res - Express 응답 객체
+ */
+const handleSocialCallback = async (provider, req, res) => {
+  try {
+    const user = req.user;
+
+    if (!user) {
+      logger.warn(`${provider} 로그인 실패 - 사용자 정보 없음`);
+      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=${provider}_auth_failed`);
+    }
+
+    if (!process.env.JWT_SECRET) {
+      logger.error('JWT_SECRET이 설정되지 않았습니다.');
+      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=server_error`);
+    }
+
+    const token = jwt.sign(
+      {
+        userId: user.id,
+        email: user.email
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+    );
+
+    logger.info(`${provider} 로그인 성공`, { userId: user.id, email: user.email });
+
+    const userResponse = {
+      id: user.id,
+      email: user.email,
+      created_at: user.created_at
+    };
+
+    logActivity(user.id, ActivityType.LOGIN, {
+      metadata: { email: user.email, provider },
+      req
+    }).catch((activityError) => {
+      logger.warn('활동 로깅 실패 (로그인은 성공)', {
+        userId: user.id,
+        error: activityError.message
+      });
+    });
+
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const redirectUrl = `${frontendUrl}/auth/callback?token=${encodeURIComponent(token)}&user=${encodeURIComponent(JSON.stringify(userResponse))}`;
+    
+    res.redirect(redirectUrl);
+  } catch (error) {
+    logger.error(`${provider} 로그인 콜백 처리 중 오류`, {
+      error: error.message,
+      stack: error.stack
+    });
+    
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    res.redirect(`${frontendUrl}/login?error=${provider}_auth_failed`);
+  }
+};
+
+const googleCallback = async (req, res) => {
+  return handleSocialCallback('google', req, res);
+};
+
+const kakaoCallback = async (req, res) => {
+  return handleSocialCallback('kakao', req, res);
+};
+
+const naverCallback = async (req, res) => {
+  return handleSocialCallback('naver', req, res);
+};
+
 module.exports = {
   register,
   login,
   verifyEmail,
   resendVerificationEmail,
   requestPasswordReset,
-  resetPassword
+  resetPassword,
+  googleCallback,
+  kakaoCallback,
+  naverCallback
 };

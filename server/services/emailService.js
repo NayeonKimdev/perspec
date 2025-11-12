@@ -64,7 +64,7 @@ const generateVerificationToken = () => {
  * @returns {string} 인증 링크 URL
  */
 const generateVerificationLink = (token) => {
-  const baseUrl = process.env.FRONTEND_URL || process.env.APP_URL || 'http://localhost:5173';
+  const baseUrl = process.env.FRONTEND_URL || process.env.APP_URL || 'http://localhost:3000';
   return `${baseUrl}/verify-email?token=${token}`;
 };
 
@@ -77,15 +77,29 @@ const generateVerificationLink = (token) => {
 const sendVerificationEmail = async (to, token) => {
   try {
     const emailTransporter = getTransporter();
-    
-    if (!emailTransporter) {
-      logger.warn('이메일 발송기 없음 - 인증 메일 발송 건너뜀', { email: to });
-      return { success: false, skipped: true };
-    }
-
     const verificationLink = generateVerificationLink(token);
     const fromEmail = process.env.SMTP_FROM || process.env.SMTP_USER;
     const appName = process.env.APP_NAME || 'Perspec';
+    
+    if (!emailTransporter) {
+      // 개발 환경에서 이메일 발송이 불가능한 경우, 인증 링크를 콘솔에 출력
+      const isDevelopment = process.env.NODE_ENV === 'development' || !process.env.NODE_ENV;
+      if (isDevelopment) {
+        console.log('\n========================================');
+        console.log('📧 이메일 인증 링크 (개발 환경)');
+        console.log('========================================');
+        console.log(`이메일: ${to}`);
+        console.log(`인증 링크: ${verificationLink}`);
+        console.log('========================================\n');
+        logger.warn('이메일 발송기 없음 - 인증 메일 발송 건너뜀 (개발 환경에서는 위 링크를 사용하세요)', { 
+          email: to,
+          verificationLink 
+        });
+      } else {
+        logger.warn('이메일 발송기 없음 - 인증 메일 발송 건너뜀', { email: to });
+      }
+      return { success: false, skipped: true, verificationLink };
+    }
 
     const mailOptions = {
       from: `"${appName}" <${fromEmail}>`,
@@ -161,7 +175,7 @@ const sendVerificationEmail = async (to, token) => {
  * @returns {string} 재설정 링크 URL
  */
 const generatePasswordResetLink = (token) => {
-  const baseUrl = process.env.FRONTEND_URL || process.env.APP_URL || 'http://localhost:5173';
+  const baseUrl = process.env.FRONTEND_URL || process.env.APP_URL || 'http://localhost:3000';
   return `${baseUrl}/reset-password?token=${token}`;
 };
 

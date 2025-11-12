@@ -3,6 +3,7 @@ const cors = require('cors');
 const compression = require('compression');
 const dotenv = require('dotenv');
 const path = require('path');
+const session = require('express-session');
 const { ensureDirectoriesExist } = require('./config/storage');
 const { validateAndThrow } = require('./config/envValidator');
 const envConfig = require('./config/environments');
@@ -10,6 +11,7 @@ const logger = require('./utils/logger');
 const requestLogger = require('./middleware/requestLogger');
 const { swaggerSetup } = require('./config/swagger');
 const { trackError } = require('./utils/errorTracker');
+const passport = require('./config/passport');
 const {
   securityHeaders,
   apiLimiter,
@@ -19,7 +21,7 @@ const {
 } = require('./middleware/security');
 
 // 환경변수 로드
-dotenv.config();
+dotenv.config({ path: path.join(__dirname, '.env') });
 
 // 환경별 설정 로드
 const nodeEnv = process.env.NODE_ENV || 'development';
@@ -106,6 +108,22 @@ app.use(requestLogger);
 // Body parser 미들웨어 (환경별 설정)
 app.use(express.json({ limit: appConfig.maxRequestBodySize || '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: appConfig.maxRequestBodySize || '10mb' }));
+
+// 세션 설정 (Passport를 위한 최소 설정, JWT를 주로 사용하므로 간단하게 설정)
+app.use(session({
+  secret: process.env.JWT_SECRET || 'your-secret-key-change-in-production',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: nodeEnv === 'production', // 프로덕션에서는 HTTPS만
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000 // 24시간
+  }
+}));
+
+// Passport 초기화
+app.use(passport.initialize());
+app.use(passport.session());
 
 // 정적 파일 제공 (업로드된 이미지)
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));

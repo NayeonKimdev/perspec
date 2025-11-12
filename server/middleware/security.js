@@ -36,11 +36,12 @@ const apiLimiter = rateLimit({
 
 /**
  * 인증 관련 엔드포인트 Rate Limiting (더 엄격)
- * 15분 동안 최대 5회 요청 (브루트포스 방지)
+ * 개발 환경: 15분 동안 최대 50회 요청
+ * 프로덕션: 15분 동안 최대 5회 요청 (브루트포스 방지)
  */
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15분
-  max: 5, // 최대 5회 요청
+  max: process.env.NODE_ENV === 'production' ? 5 : 50, // 개발 환경에서는 더 관대하게
   message: '너무 많은 로그인 시도를 했습니다. 15분 후 다시 시도해주세요.',
   standardHeaders: true,
   legacyHeaders: false,

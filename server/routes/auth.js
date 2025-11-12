@@ -1,6 +1,7 @@
 const express = require('express');
 const { body } = require('express-validator');
-const { register, login, verifyEmail, resendVerificationEmail, requestPasswordReset, resetPassword } = require('../controllers/authController');
+const passport = require('../config/passport');
+const { register, login, verifyEmail, resendVerificationEmail, requestPasswordReset, resetPassword, googleCallback, kakaoCallback, naverCallback } = require('../controllers/authController');
 
 const router = express.Router();
 
@@ -160,5 +161,99 @@ router.post('/reset-password', [
     .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
     .withMessage('비밀번호는 대문자, 소문자, 숫자를 포함해야 합니다.')
 ], resetPassword);
+
+/**
+ * @swagger
+ * /api/v1/auth/google:
+ *   get:
+ *     summary: Google 소셜 로그인 시작
+ *     tags: [인증]
+ *     description: Google OAuth 인증을 시작합니다. 사용자를 Google 로그인 페이지로 리다이렉트합니다.
+ *     responses:
+ *       302:
+ *         description: Google 로그인 페이지로 리다이렉트
+ */
+router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+
+/**
+ * @swagger
+ * /api/v1/auth/google/callback:
+ *   get:
+ *     summary: Google 소셜 로그인 콜백
+ *     tags: [인증]
+ *     description: Google OAuth 인증 콜백을 처리하고 JWT 토큰을 발급합니다.
+ *     parameters:
+ *       - in: query
+ *         name: code
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Google OAuth 인증 코드
+ *     responses:
+ *       302:
+ *         description: 프론트엔드로 리다이렉트 (토큰 포함)
+ */
+router.get('/google/callback', 
+  passport.authenticate('google', { session: false, failureRedirect: '/login?error=google_auth_failed' }),
+  googleCallback
+);
+
+/**
+ * @swagger
+ * /api/v1/auth/kakao:
+ *   get:
+ *     summary: Kakao 소셜 로그인 시작
+ *     tags: [인증]
+ *     description: Kakao OAuth 인증을 시작합니다. 사용자를 Kakao 로그인 페이지로 리다이렉트합니다.
+ *     responses:
+ *       302:
+ *         description: Kakao 로그인 페이지로 리다이렉트
+ */
+router.get('/kakao', passport.authenticate('kakao'));
+
+/**
+ * @swagger
+ * /api/v1/auth/kakao/callback:
+ *   get:
+ *     summary: Kakao 소셜 로그인 콜백
+ *     tags: [인증]
+ *     description: Kakao OAuth 인증 콜백을 처리하고 JWT 토큰을 발급합니다.
+ *     responses:
+ *       302:
+ *         description: 프론트엔드로 리다이렉트 (토큰 포함)
+ */
+router.get('/kakao/callback', 
+  passport.authenticate('kakao', { session: false, failureRedirect: '/login?error=kakao_auth_failed' }),
+  kakaoCallback
+);
+
+/**
+ * @swagger
+ * /api/v1/auth/naver:
+ *   get:
+ *     summary: Naver 소셜 로그인 시작
+ *     tags: [인증]
+ *     description: Naver OAuth 인증을 시작합니다. 사용자를 Naver 로그인 페이지로 리다이렉트합니다.
+ *     responses:
+ *       302:
+ *         description: Naver 로그인 페이지로 리다이렉트
+ */
+router.get('/naver', passport.authenticate('naver'));
+
+/**
+ * @swagger
+ * /api/v1/auth/naver/callback:
+ *   get:
+ *     summary: Naver 소셜 로그인 콜백
+ *     tags: [인증]
+ *     description: Naver OAuth 인증 콜백을 처리하고 JWT 토큰을 발급합니다.
+ *     responses:
+ *       302:
+ *         description: 프론트엔드로 리다이렉트 (토큰 포함)
+ */
+router.get('/naver/callback', 
+  passport.authenticate('naver', { session: false, failureRedirect: '/login?error=naver_auth_failed' }),
+  naverCallback
+);
 
 module.exports = router;

@@ -8,6 +8,8 @@ import { SkeletonDashboard } from './components/Skeleton';
 // 코드 스플리팅 - 지연 로딩
 const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
+const VerifyEmail = lazy(() => import('./pages/VerifyEmail'));
+const AuthCallback = lazy(() => import('./pages/AuthCallback'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const ProfileForm = lazy(() => import('./pages/ProfileForm'));
 const ProfileView = lazy(() => import('./pages/ProfileView'));
@@ -61,6 +63,14 @@ function App() {
             element={
               isAuthenticated() ? <Navigate to="/dashboard" replace /> : <Register />
             } 
+          />
+          <Route 
+            path="/verify-email" 
+            element={<VerifyEmail />} 
+          />
+          <Route 
+            path="/auth/callback" 
+            element={<AuthCallback />} 
           />
           <Route 
             path="/dashboard" 

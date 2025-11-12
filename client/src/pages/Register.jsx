@@ -13,6 +13,7 @@ const Register = () => {
   });
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
+  const [verificationLink, setVerificationLink] = useState(null);
   const navigate = useNavigate();
   const toast = useToast();
 
@@ -78,10 +79,16 @@ const Register = () => {
         password: formData.password
       });
 
-      toast.success('회원가입이 완료되었습니다!');
-      setTimeout(() => {
-        navigate('/login');
-      }, 1000);
+      // 개발 환경에서 인증 링크가 제공된 경우
+      if (response.data.verificationLink) {
+        setVerificationLink(response.data.verificationLink);
+        toast.success(response.data.message || '회원가입이 완료되었습니다!');
+      } else {
+        toast.success('회원가입이 완료되었습니다!');
+        setTimeout(() => {
+          navigate('/login');
+        }, 1000);
+      }
 
     } catch (error) {
       const errorMessage = error.response?.data?.message || '회원가입 중 오류가 발생했습니다.';
@@ -176,8 +183,36 @@ const Register = () => {
           </div>
 
           {errors.general && (
-            <div className="rounded-md bg-red-50 p-4">
-              <div className="text-sm text-red-700">{errors.general}</div>
+            <div className="rounded-md bg-red-50 dark:bg-red-900/20 p-4">
+              <div className="text-sm text-red-700 dark:text-red-400">{errors.general}</div>
+            </div>
+          )}
+
+          {verificationLink && (
+            <div className="rounded-md bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 p-4">
+              <div className="text-sm text-yellow-800 dark:text-yellow-200 mb-2">
+                <strong>개발 환경 안내:</strong> 이메일 발송이 비활성화되어 있습니다. 아래 링크를 클릭하여 이메일을 인증해주세요.
+              </div>
+              <a
+                href={verificationLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-yellow-900 dark:text-yellow-100 underline break-all hover:text-yellow-700 dark:hover:text-yellow-300"
+              >
+                {verificationLink}
+              </a>
+              <div className="mt-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setVerificationLink(null);
+                    navigate('/login');
+                  }}
+                  className="text-sm text-yellow-900 dark:text-yellow-100 hover:text-yellow-700 dark:hover:text-yellow-300 underline"
+                >
+                  로그인 페이지로 이동
+                </button>
+              </div>
             </div>
           )}
 
