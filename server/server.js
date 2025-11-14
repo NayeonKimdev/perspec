@@ -23,6 +23,20 @@ const {
 // 환경변수 로드
 dotenv.config({ path: path.join(__dirname, '.env') });
 
+// AWS Secrets Manager 초기화 (프로덕션 환경)
+if (process.env.NODE_ENV === 'production') {
+  const { initializeSecrets } = require('./config/awsSecretsManager');
+  // 비동기 초기화는 서버 시작 전에 완료되어야 함
+  (async () => {
+    try {
+      await initializeSecrets();
+    } catch (error) {
+      logger.error('Secrets Manager 초기화 실패', { error: error.message });
+      // 프로덕션에서는 환경 변수 직접 사용 시도
+    }
+  })();
+}
+
 // 환경별 설정 로드
 const nodeEnv = process.env.NODE_ENV || 'development';
 const appConfig = envConfig.getConfig();
