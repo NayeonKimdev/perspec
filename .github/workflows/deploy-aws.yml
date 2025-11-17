@@ -59,16 +59,36 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY_CLIENT:latest
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY_CLIENT:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
-      - name: Download task definition
+      - name: Check if ECS cluster exists
+        id: check-cluster
         run: |
-          aws ecs describe-task-definition \
-            --task-definition ${{ env.ECS_SERVICE_API }} \
-            --query taskDefinition > task-definition-api.json
-          aws ecs describe-task-definition \
-            --task-definition ${{ env.ECS_SERVICE_CLIENT }} \
-            --query taskDefinition > task-definition-client.json
+          if aws ecs describe-clusters --clusters ${{ env.ECS_CLUSTER }} --region ${{ env.AWS_REGION }} --query 'clusters[0].clusterName' --output text 2>/dev/null | grep -q ${{ env.ECS_CLUSTER }}; then
+            echo "cluster_exists=true" >> $GITHUB_OUTPUT
+            echo "✅ ECS 클러스터가 존재합니다."
+          else
+            echo "cluster_exists=false" >> $GITHUB_OUTPUT
+            echo "⚠️ ECS 클러스터가 존재하지 않습니다. 이미지만 빌드/푸시하고 배포는 건너뜁니다."
+          fi
+
+      - name: Download task definition
+        if: steps.check-cluster.outputs.cluster_exists == 'true'
+        run: |
+          echo "Task definition 다운로드 중..."
+          if aws ecs describe-task-definition --task-definition ${{ env.ECS_SERVICE_API }} --region ${{ env.AWS_REGION }} --query taskDefinition > task-definition-api.json 2>/dev/null; then
+            echo "✅ API task definition 다운로드 완료"
+          else
+            echo "⚠️ API task definition을 찾을 수 없습니다."
+            exit 1
+          fi
+          if aws ecs describe-task-definition --task-definition ${{ env.ECS_SERVICE_CLIENT }} --region ${{ env.AWS_REGION }} --query taskDefinition > task-definition-client.json 2>/dev/null; then
+            echo "✅ Client task definition 다운로드 완료"
+          else
+            echo "⚠️ Client task definition을 찾을 수 없습니다."
+            exit 1
+          fi
 
       - name: Fill in the new image ID in the API task definition
+        if: steps.check-cluster.outputs.cluster_exists == 'true'
         id: task-def-api
         uses: aws-actions/amazon-ecs-render-task-definition@v1
         with:
@@ -77,6 +97,7 @@ jobs:
           image: ${{ steps.build-api-image.outputs.image }}
 
       - name: Fill in the new image ID in the Client task definition
+        if: steps.check-cluster.outputs.cluster_exists == 'true'
         id: task-def-client
         uses: aws-actions/amazon-ecs-render-task-definition@v1
         with:
@@ -85,6 +106,7 @@ jobs:
           image: ${{ steps.build-client-image.outputs.image }}
 
       - name: Deploy API to Amazon ECS
+        if: steps.check-cluster.outputs.cluster_exists == 'true'
         uses: aws-actions/amazon-ecs-deploy-task-definition@v1
         with:
           task-definition: ${{ steps.task-def-api.outputs.task-definition }}
@@ -93,6 +115,7 @@ jobs:
           wait-for-service-stability: true
 
       - name: Deploy Client to Amazon ECS
+        if: steps.check-cluster.outputs.cluster_exists == 'true'
         uses: aws-actions/amazon-ecs-deploy-task-definition@v1
         with:
           task-definition: ${{ steps.task-def-client.outputs.task-definition }}
@@ -101,16 +124,31 @@ jobs:
           wait-for-service-stability: true
 
       - name: Verify deployment
+        if: steps.check-cluster.outputs.cluster_exists == 'true'
         run: |
           echo "✅ 배포 완료!"
           echo "API 서비스 상태 확인 중..."
           aws ecs describe-services \
             --cluster ${{ env.ECS_CLUSTER }} \
             --services ${{ env.ECS_SERVICE_API }} \
+            --region ${{ env.AWS_REGION }} \
             --query 'services[0].{Status:status,RunningCount:runningCount,DesiredCount:desiredCount}'
           echo "Client 서비스 상태 확인 중..."
           aws ecs describe-services \
             --cluster ${{ env.ECS_CLUSTER }} \
             --services ${{ env.ECS_SERVICE_CLIENT }} \
+            --region ${{ env.AWS_REGION }} \
             --query 'services[0].{Status:status,RunningCount:runningCount,DesiredCount:desiredCount}'
+
+      - name: Summary
+        if: steps.check-cluster.outputs.cluster_exists == 'false'
+        run: |
+          echo "## ✅ 이미지 빌드 및 푸시 완료" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Docker 이미지가 ECR에 성공적으로 푸시되었습니다:" >> $GITHUB_STEP_SUMMARY
+          echo "- API: \`${{ steps.build-api-image.outputs.image }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Client: \`${{ steps.build-client-image.outputs.image }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "⚠️ **참고**: ECS 클러스터가 아직 생성되지 않아 배포는 건너뛰었습니다." >> $GITHUB_STEP_SUMMARY
+          echo "ECS 클러스터와 서비스를 생성한 후 다시 실행하세요." >> $GITHUB_STEP_SUMMARY
 
