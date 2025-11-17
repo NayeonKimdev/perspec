@@ -260,7 +260,6 @@ const Dashboard = () => {
                               src={image.file_url}
                               alt={image.file_name}
                               className="w-full h-full object-cover"
-                              style={{ minHeight: '120px', maxHeight: '120px' }}
                               loading="lazy"
                             />
                           </div>

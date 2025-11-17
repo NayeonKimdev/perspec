@@ -428,7 +428,6 @@ const MediaUpload = () => {
                     src={preview.url}
                     alt={preview.file}
                     className="w-full h-full object-cover"
-                    style={{ minHeight: '150px', maxHeight: '150px' }}
                     loading="lazy"
                   />
                   

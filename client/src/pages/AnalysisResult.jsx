@@ -310,14 +310,13 @@ const AnalysisResult = () => {
               {relatedImages.map((image) => (
                 <div
                   key={image.id}
-                  className="group relative aspect-square bg-gray-100 rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition"
+                  className="group relative aspect-square bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition"
                   onClick={() => handleViewImageAnalysis(image)}
                 >
                   <img
                     src={image.file_url}
                     alt={image.file_name}
                     className="w-full h-full object-cover"
-                    style={{ minHeight: '120px', maxHeight: '120px' }}
                   />
                   <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition flex items-center justify-center">
                     <Eye className="w-5 h-5 text-white opacity-0 group-hover:opacity-100 transition" />

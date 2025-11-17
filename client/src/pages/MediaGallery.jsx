@@ -390,12 +390,11 @@ const MediaGallery = () => {
                   onClick={() => handleImageClick(item)}
                 >
                   {/* 이미지 썸네일 - 고정 크기 */}
-                  <div className="relative w-full aspect-square bg-gray-100 overflow-hidden">
+                  <div className="relative w-full aspect-square bg-gray-100 dark:bg-gray-700 overflow-hidden">
                     <img
                       src={item.file_url}
                       alt={item.file_name}
                       className="w-full h-full object-cover"
-                      style={{ minHeight: '200px', maxHeight: '200px' }}
                       loading="lazy"
                       onError={(e) => {
                         e.target.src = 'https://via.placeholder.com/200x200?text=Image+Error';
