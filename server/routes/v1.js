@@ -6,6 +6,7 @@
 
 const express = require('express');
 const router = express.Router();
+const logger = require('../utils/logger');
 
 // 라우트 모듈 로드 (지연 로딩으로 데이터베이스 연결 오류 처리)
 let authRoutes;
@@ -20,9 +21,12 @@ let reportRoutes;
 // 인증 라우트
 try {
   authRoutes = require('../routes/auth');
-  console.log('인증 라우트 로드 성공:', !!authRoutes);
+  logger.info('인증 라우트 로드 성공', { loaded: !!authRoutes });
 } catch (error) {
-  console.error('인증 라우트 로드 실패:', error.message, error.stack);
+  logger.error('인증 라우트 로드 실패', { 
+    error: error.message, 
+    stack: error.stack 
+  });
   authRoutes = null;
 }
 

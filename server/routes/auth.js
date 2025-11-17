@@ -172,8 +172,18 @@ router.post('/reset-password', [
  *     responses:
  *       302:
  *         description: Google 로그인 페이지로 리다이렉트
+ *       503:
+ *         description: Google OAuth가 설정되지 않음
  */
-router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+router.get('/google', (req, res, next) => {
+  // Google 전략이 등록되어 있는지 확인
+  if (!passport._strategies || !passport._strategies.google) {
+    return res.status(503).json({ 
+      message: 'Google 소셜 로그인이 설정되지 않았습니다. GOOGLE_CLIENT_ID와 GOOGLE_CLIENT_SECRET 환경 변수를 확인해주세요.' 
+    });
+  }
+  passport.authenticate('google', { scope: ['profile', 'email'] })(req, res, next);
+});
 
 /**
  * @swagger
@@ -194,7 +204,23 @@ router.get('/google', passport.authenticate('google', { scope: ['profile', 'emai
  *         description: 프론트엔드로 리다이렉트 (토큰 포함)
  */
 router.get('/google/callback', 
-  passport.authenticate('google', { session: false, failureRedirect: '/login?error=google_auth_failed' }),
+  (req, res, next) => {
+    passport.authenticate('google', { session: false }, (err, user, info) => {
+      if (err) {
+        // 에러 발생 시 프론트엔드로 리다이렉트
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+        return res.redirect(`${frontendUrl}/login?error=google_auth_failed`);
+      }
+      if (!user) {
+        // 사용자 인증 실패 시 프론트엔드로 리다이렉트
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+        return res.redirect(`${frontendUrl}/login?error=google_auth_failed`);
+      }
+      // 인증 성공 시 req.user에 사용자 정보 설정
+      req.user = user;
+      next();
+    })(req, res, next);
+  },
   googleCallback
 );
 
@@ -208,8 +234,18 @@ router.get('/google/callback',
  *     responses:
  *       302:
  *         description: Kakao 로그인 페이지로 리다이렉트
+ *       503:
+ *         description: Kakao OAuth가 설정되지 않음
  */
-router.get('/kakao', passport.authenticate('kakao'));
+router.get('/kakao', (req, res, next) => {
+  // Kakao 전략이 등록되어 있는지 확인
+  if (!passport._strategies || !passport._strategies.kakao) {
+    return res.status(503).json({ 
+      message: 'Kakao 소셜 로그인이 설정되지 않았습니다. KAKAO_CLIENT_ID와 KAKAO_CLIENT_SECRET 환경 변수를 확인해주세요.' 
+    });
+  }
+  passport.authenticate('kakao')(req, res, next);
+});
 
 /**
  * @swagger
@@ -223,7 +259,23 @@ router.get('/kakao', passport.authenticate('kakao'));
  *         description: 프론트엔드로 리다이렉트 (토큰 포함)
  */
 router.get('/kakao/callback', 
-  passport.authenticate('kakao', { session: false, failureRedirect: '/login?error=kakao_auth_failed' }),
+  (req, res, next) => {
+    passport.authenticate('kakao', { session: false }, (err, user, info) => {
+      if (err) {
+        // 에러 발생 시 프론트엔드로 리다이렉트
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+        return res.redirect(`${frontendUrl}/login?error=kakao_auth_failed`);
+      }
+      if (!user) {
+        // 사용자 인증 실패 시 프론트엔드로 리다이렉트
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+        return res.redirect(`${frontendUrl}/login?error=kakao_auth_failed`);
+      }
+      // 인증 성공 시 req.user에 사용자 정보 설정
+      req.user = user;
+      next();
+    })(req, res, next);
+  },
   kakaoCallback
 );
 
@@ -237,8 +289,18 @@ router.get('/kakao/callback',
  *     responses:
  *       302:
  *         description: Naver 로그인 페이지로 리다이렉트
+ *       503:
+ *         description: Naver OAuth가 설정되지 않음
  */
-router.get('/naver', passport.authenticate('naver'));
+router.get('/naver', (req, res, next) => {
+  // Naver 전략이 등록되어 있는지 확인
+  if (!passport._strategies || !passport._strategies.naver) {
+    return res.status(503).json({ 
+      message: 'Naver 소셜 로그인이 설정되지 않았습니다. NAVER_CLIENT_ID와 NAVER_CLIENT_SECRET 환경 변수를 확인해주세요.' 
+    });
+  }
+  passport.authenticate('naver')(req, res, next);
+});
 
 /**
  * @swagger
@@ -252,7 +314,23 @@ router.get('/naver', passport.authenticate('naver'));
  *         description: 프론트엔드로 리다이렉트 (토큰 포함)
  */
 router.get('/naver/callback', 
-  passport.authenticate('naver', { session: false, failureRedirect: '/login?error=naver_auth_failed' }),
+  (req, res, next) => {
+    passport.authenticate('naver', { session: false }, (err, user, info) => {
+      if (err) {
+        // 에러 발생 시 프론트엔드로 리다이렉트
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+        return res.redirect(`${frontendUrl}/login?error=naver_auth_failed`);
+      }
+      if (!user) {
+        // 사용자 인증 실패 시 프론트엔드로 리다이렉트
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+        return res.redirect(`${frontendUrl}/login?error=naver_auth_failed`);
+      }
+      // 인증 성공 시 req.user에 사용자 정보 설정
+      req.user = user;
+      next();
+    })(req, res, next);
+  },
   naverCallback
 );
 

@@ -19,6 +19,28 @@ services:
     networks:
       - perspec-network
 
+  # 데이터베이스 마이그레이션 (한 번만 실행)
+  migrate:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    container_name: perspec-migrate
+    environment:
+      NODE_ENV: production
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-perspec}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-password}
+    command: npm run migrate
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - perspec-network
+    profiles:
+      - migrate
+
   # 백엔드 API 서버
   api:
     build:
@@ -36,8 +58,21 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
-      CORS_ORIGIN: ${CORS_ORIGIN:-}
+      CORS_ORIGIN: "http://localhost:3000,http://localhost:5173"
       LOG_LEVEL: ${LOG_LEVEL:-info}
+      # Google OAuth 설정
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL:-http://localhost:5000/api/v1/auth/google/callback}
+      # Kakao OAuth 설정
+      KAKAO_CLIENT_ID: ${KAKAO_CLIENT_ID:-}
+      KAKAO_CLIENT_SECRET: ${KAKAO_CLIENT_SECRET:-}
+      KAKAO_CALLBACK_URL: ${KAKAO_CALLBACK_URL:-http://localhost:5000/api/v1/auth/kakao/callback}
+      # Naver OAuth 설정
+      NAVER_CLIENT_ID: ${NAVER_CLIENT_ID:-}
+      NAVER_CLIENT_SECRET: ${NAVER_CLIENT_SECRET:-}
+      NAVER_CALLBACK_URL: ${NAVER_CALLBACK_URL:-http://localhost:5000/api/v1/auth/naver/callback}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
     ports:
       - "${PORT:-5000}:5000"
     volumes:

@@ -113,120 +113,146 @@ async function findOrCreateSocialUser(provider, providerId, email) {
 }
 
 /**
- * Google OAuth 2.0 전략 설정
+ * Passport 전략 초기화 함수
+ * 환경 변수가 로드된 후 호출하여 전략을 등록
  */
-if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
-  passport.use(
-    new GoogleStrategy(
-      {
-        clientID: process.env.GOOGLE_CLIENT_ID,
-        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-        callbackURL: process.env.GOOGLE_CALLBACK_URL || '/api/v1/auth/google/callback'
-      },
-      async (accessToken, refreshToken, profile, done) => {
-        try {
-          const { id, emails } = profile;
-          const email = emails && emails[0] ? emails[0].value : null;
+function initializePassportStrategies() {
+  // 기존 전략 제거 (재등록을 위해)
+  if (passport._strategies && passport._strategies.google) {
+    passport.unuse('google');
+  }
+  if (passport._strategies && passport._strategies.kakao) {
+    passport.unuse('kakao');
+  }
+  if (passport._strategies && passport._strategies.naver) {
+    passport.unuse('naver');
+  }
 
-          if (!email) {
-            logger.warn('Google 로그인 실패 - 이메일 정보 없음', { googleId: id });
-            return done(new Error('Google 계정에서 이메일 정보를 가져올 수 없습니다.'), null);
+  /**
+   * Google OAuth 2.0 전략 설정
+   */
+  if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+    passport.use(
+      'google',
+      new GoogleStrategy(
+        {
+          clientID: process.env.GOOGLE_CLIENT_ID,
+          clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+          callbackURL: process.env.GOOGLE_CALLBACK_URL || '/api/v1/auth/google/callback'
+        },
+        async (accessToken, refreshToken, profile, done) => {
+          try {
+            const { id, emails } = profile;
+            const email = emails && emails[0] ? emails[0].value : null;
+
+            if (!email) {
+              logger.warn('Google 로그인 실패 - 이메일 정보 없음', { googleId: id });
+              return done(new Error('Google 계정에서 이메일 정보를 가져올 수 없습니다.'), null);
+            }
+
+            const user = await findOrCreateSocialUser('google', id, email);
+            return done(null, user);
+          } catch (error) {
+            logger.error('Google 로그인 처리 중 오류', {
+              error: error.message,
+              stack: error.stack,
+              googleId: profile.id
+            });
+            return done(error, null);
           }
-
-          const user = await findOrCreateSocialUser('google', id, email);
-          return done(null, user);
-        } catch (error) {
-          logger.error('Google 로그인 처리 중 오류', {
-            error: error.message,
-            stack: error.stack,
-            googleId: profile.id
-          });
-          return done(error, null);
         }
-      }
-    )
-  );
-} else {
-  logger.warn('Google OAuth 환경 변수가 설정되지 않아 Google 로그인이 비활성화됩니다.');
+      )
+    );
+    logger.info('Google OAuth 전략이 등록되었습니다.');
+  } else {
+    logger.warn('Google OAuth 환경 변수가 설정되지 않아 Google 로그인이 비활성화됩니다.');
+  }
+
+  /**
+   * Kakao OAuth 2.0 전략 설정
+   */
+  if (process.env.KAKAO_CLIENT_ID && process.env.KAKAO_CLIENT_SECRET) {
+    passport.use(
+      'kakao',
+      new KakaoStrategy(
+        {
+          clientID: process.env.KAKAO_CLIENT_ID,
+          clientSecret: process.env.KAKAO_CLIENT_SECRET,
+          callbackURL: process.env.KAKAO_CALLBACK_URL || '/api/v1/auth/kakao/callback'
+        },
+        async (accessToken, refreshToken, profile, done) => {
+          try {
+            const { id } = profile;
+            // Kakao는 profile._json에 이메일 정보가 있음
+            const email = profile._json?.kakao_account?.email || null;
+
+            if (!email) {
+              logger.warn('Kakao 로그인 실패 - 이메일 정보 없음', { kakaoId: id });
+              return done(new Error('Kakao 계정에서 이메일 정보를 가져올 수 없습니다. 이메일 동의가 필요합니다.'), null);
+            }
+
+            const user = await findOrCreateSocialUser('kakao', id.toString(), email);
+            return done(null, user);
+          } catch (error) {
+            logger.error('Kakao 로그인 처리 중 오류', {
+              error: error.message,
+              stack: error.stack,
+              kakaoId: profile.id
+            });
+            return done(error, null);
+          }
+        }
+      )
+    );
+    logger.info('Kakao OAuth 전략이 등록되었습니다.');
+  } else {
+    logger.warn('Kakao OAuth 환경 변수가 설정되지 않아 Kakao 로그인이 비활성화됩니다.');
+  }
+
+  /**
+   * Naver OAuth 2.0 전략 설정
+   */
+  if (process.env.NAVER_CLIENT_ID && process.env.NAVER_CLIENT_SECRET) {
+    passport.use(
+      'naver',
+      new NaverStrategy(
+        {
+          clientID: process.env.NAVER_CLIENT_ID,
+          clientSecret: process.env.NAVER_CLIENT_SECRET,
+          callbackURL: process.env.NAVER_CALLBACK_URL || '/api/v1/auth/naver/callback'
+        },
+        async (accessToken, refreshToken, profile, done) => {
+          try {
+            const { id } = profile;
+            // Naver는 profile._json에 이메일 정보가 있음
+            const email = profile._json?.email || profile.emails?.[0]?.value || null;
+
+            if (!email) {
+              logger.warn('Naver 로그인 실패 - 이메일 정보 없음', { naverId: id });
+              return done(new Error('Naver 계정에서 이메일 정보를 가져올 수 없습니다.'), null);
+            }
+
+            const user = await findOrCreateSocialUser('naver', id, email);
+            return done(null, user);
+          } catch (error) {
+            logger.error('Naver 로그인 처리 중 오류', {
+              error: error.message,
+              stack: error.stack,
+              naverId: profile.id
+            });
+            return done(error, null);
+          }
+        }
+      )
+    );
+    logger.info('Naver OAuth 전략이 등록되었습니다.');
+  } else {
+    logger.warn('Naver OAuth 환경 변수가 설정되지 않아 Naver 로그인이 비활성화됩니다.');
+  }
 }
 
-/**
- * Kakao OAuth 2.0 전략 설정
- */
-if (process.env.KAKAO_CLIENT_ID && process.env.KAKAO_CLIENT_SECRET) {
-  passport.use(
-    new KakaoStrategy(
-      {
-        clientID: process.env.KAKAO_CLIENT_ID,
-        clientSecret: process.env.KAKAO_CLIENT_SECRET,
-        callbackURL: process.env.KAKAO_CALLBACK_URL || '/api/v1/auth/kakao/callback'
-      },
-      async (accessToken, refreshToken, profile, done) => {
-        try {
-          const { id } = profile;
-          // Kakao는 profile._json에 이메일 정보가 있음
-          const email = profile._json?.kakao_account?.email || null;
-
-          if (!email) {
-            logger.warn('Kakao 로그인 실패 - 이메일 정보 없음', { kakaoId: id });
-            return done(new Error('Kakao 계정에서 이메일 정보를 가져올 수 없습니다. 이메일 동의가 필요합니다.'), null);
-          }
-
-          const user = await findOrCreateSocialUser('kakao', id.toString(), email);
-          return done(null, user);
-        } catch (error) {
-          logger.error('Kakao 로그인 처리 중 오류', {
-            error: error.message,
-            stack: error.stack,
-            kakaoId: profile.id
-          });
-          return done(error, null);
-        }
-      }
-    )
-  );
-} else {
-  logger.warn('Kakao OAuth 환경 변수가 설정되지 않아 Kakao 로그인이 비활성화됩니다.');
-}
-
-/**
- * Naver OAuth 2.0 전략 설정
- */
-if (process.env.NAVER_CLIENT_ID && process.env.NAVER_CLIENT_SECRET) {
-  passport.use(
-    new NaverStrategy(
-      {
-        clientID: process.env.NAVER_CLIENT_ID,
-        clientSecret: process.env.NAVER_CLIENT_SECRET,
-        callbackURL: process.env.NAVER_CALLBACK_URL || '/api/v1/auth/naver/callback'
-      },
-      async (accessToken, refreshToken, profile, done) => {
-        try {
-          const { id } = profile;
-          // Naver는 profile._json에 이메일 정보가 있음
-          const email = profile._json?.email || profile.emails?.[0]?.value || null;
-
-          if (!email) {
-            logger.warn('Naver 로그인 실패 - 이메일 정보 없음', { naverId: id });
-            return done(new Error('Naver 계정에서 이메일 정보를 가져올 수 없습니다.'), null);
-          }
-
-          const user = await findOrCreateSocialUser('naver', id, email);
-          return done(null, user);
-        } catch (error) {
-          logger.error('Naver 로그인 처리 중 오류', {
-            error: error.message,
-            stack: error.stack,
-            naverId: profile.id
-          });
-          return done(error, null);
-        }
-      }
-    )
-  );
-} else {
-  logger.warn('Naver OAuth 환경 변수가 설정되지 않아 Naver 로그인이 비활성화됩니다.');
-}
+// 초기 전략 등록 (개발 환경 또는 환경 변수가 이미 로드된 경우)
+initializePassportStrategies();
 
 /**
  * 사용자 정보를 세션에 직렬화
@@ -250,4 +276,5 @@ passport.deserializeUser(async (id, done) => {
 });
 
 module.exports = passport;
+module.exports.initializePassportStrategies = initializePassportStrategies;
 

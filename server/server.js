@@ -24,12 +24,19 @@ const {
 dotenv.config({ path: path.join(__dirname, '.env') });
 
 // AWS Secrets Manager 초기화 (프로덕션 환경)
+// 서버 시작 전에 완료되어야 하므로 동기적으로 대기
 if (process.env.NODE_ENV === 'production') {
   const { initializeSecrets } = require('./config/awsSecretsManager');
-  // 비동기 초기화는 서버 시작 전에 완료되어야 함
+  // 비동기 초기화를 동기적으로 대기
   (async () => {
     try {
       await initializeSecrets();
+      // Secrets Manager 로드 후 passport 전략 재등록
+      const passport = require('./config/passport');
+      if (passport.initializePassportStrategies) {
+        passport.initializePassportStrategies();
+        logger.info('Secrets Manager 초기화 완료, Passport 전략 재등록 완료');
+      }
     } catch (error) {
       logger.error('Secrets Manager 초기화 실패', { error: error.message });
       // 프로덕션에서는 환경 변수 직접 사용 시도
@@ -146,84 +153,91 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 let apiRouter;
 try {
   apiRouter = require('./routes/api');
-  logger.debug('API 라우터 로드 성공');
+  logger.info('API 라우터 로드 성공', { loaded: !!apiRouter });
 } catch (error) {
-  logger.error('API 라우터 로드 실패', { error: error.message });
+  logger.error('API 라우터 로드 실패', { error: error.message, stack: error.stack });
   apiRouter = null;
-}
-
-// 기존 API 엔드포인트와의 호환성을 위해 프록시 미들웨어
-// /api/auth/login -> /api/v1/auth/login으로 내부 리다이렉트
-// 프로덕션에서는 제거하거나 deprecated 경고 메시지 추가 가능
-// 이 미들웨어는 /api 라우터 이전에 배치되어야 함
-if (nodeEnv !== 'production' && apiRouter) {
-  // 개발 환경에서만 기존 엔드포인트를 v1으로 프록시
-  const legacyPaths = ['/auth', '/profile', '/media', '/documents', '/analysis', '/mbti', '/emotion', '/reports'];
-  
-  legacyPaths.forEach((legacyPath) => {
-    // 모든 HTTP 메서드와 경로에 대해 처리
-    app.all(`/api${legacyPath}*`, (req, res, next) => {
-      // req.path는 이미 /api/auth/login 형태로 들어옴
-      // /api/auth 부분을 제거하고 나머지 경로만 추출
-      const apiPrefix = `/api${legacyPath}`;
-      let remainingPath = req.path;
-      
-      // /api/auth로 시작하는 경우 해당 부분 제거
-      if (remainingPath.startsWith(apiPrefix)) {
-        remainingPath = remainingPath.substring(apiPrefix.length);
-      }
-      
-      // 빈 경로인 경우 /로 설정
-      if (!remainingPath || remainingPath === '') {
-        remainingPath = '/';
-      }
-      
-      // v1 경로로 변경 (예: /v1/auth/login)
-      const v1Path = `/v1${legacyPath}${remainingPath}`;
-      
-      // 디버깅 로그
-      logger.debug('레거시 경로 프록시', {
-        originalPath: req.path,
-        remainingPath,
-        originalUrl: req.originalUrl,
-        v1Path,
-        method: req.method
-      });
-      
-      // 원본 URL 정보 저장 (에러 처리용)
-      const originalUrl = req.originalUrl;
-      const originalBaseUrl = req.baseUrl;
-      const originalPath = req.path;
-      
-      // URL을 v1 경로로 재설정
-      req.url = v1Path;
-      req.baseUrl = '/api';
-      req.originalUrl = `/api${v1Path}`;
-      
-      // apiRouter를 직접 호출하여 처리
-      apiRouter(req, res, (err) => {
-        if (err) {
-          // 에러 발생 시 원본 URL로 복원하여 에러 핸들러에 전달
-          req.url = originalPath;
-          req.baseUrl = originalBaseUrl;
-          req.originalUrl = originalUrl;
-          logger.error('레거시 경로 프록시 에러', {
-            error: err.message,
-            originalUrl,
-            v1Path
-          });
-          return next(err);
-        }
-        // 성공적으로 처리된 경우 응답이 이미 전송되었으므로 아무것도 하지 않음
-      });
-    });
-  });
 }
 
 // API 버전 관리 라우트 등록
 if (apiRouter) {
+  // 레거시 경로를 v1으로 리다이렉트하는 미들웨어
+  // 모든 /api 요청을 가로채서 레거시 경로인지 확인
+  const legacyPaths = ['/auth', '/profile', '/media', '/documents', '/analysis', '/mbti', '/emotion', '/reports'];
+  
+  // 레거시 경로 프록시 미들웨어 (requestLogger 이후에 배치)
+  app.use('/api', (req, res, next) => {
+    // req.originalUrl에서 직접 경로 추출
+    const originalUrl = req.originalUrl; // /api/media/upload
+    let path = originalUrl;
+    
+    // 쿼리 문자열 제거
+    const queryIndex = path.indexOf('?');
+    if (queryIndex !== -1) {
+      path = path.substring(0, queryIndex);
+    }
+    
+    // /api 제거
+    if (path.startsWith('/api')) {
+      path = path.substring(4);
+    }
+    
+    // 디버깅: 모든 /api 요청 로깅
+    logger.info('레거시 프록시 미들웨어 실행', {
+      originalUrl,
+      reqPath: req.path,
+      extractedPath: path,
+      method: req.method
+    });
+    
+    // 레거시 경로인지 확인
+    for (const legacyPath of legacyPaths) {
+      if (path.startsWith(legacyPath)) {
+        // /media/upload -> /upload 추출
+        const remainingPath = path.substring(legacyPath.length) || '/';
+        const v1Path = `/v1${legacyPath}${remainingPath}`;
+        
+        logger.info('레거시 경로 프록시 실행 - 변환', {
+          originalUrl,
+          path,
+          v1Path,
+          method: req.method
+        });
+        
+        // URL 재설정
+        const originalBaseUrl = req.baseUrl;
+        const originalPath = req.path;
+        
+        req.url = v1Path;
+        req.baseUrl = '/api';
+        req.originalUrl = `/api${v1Path}`;
+        
+        // apiRouter로 요청 전달
+        return apiRouter(req, res, (err) => {
+          if (err) {
+            req.url = originalPath;
+            req.baseUrl = originalBaseUrl;
+            req.originalUrl = originalUrl;
+            logger.error('레거시 경로 프록시 에러', {
+              error: err.message,
+              originalUrl,
+              v1Path
+            });
+            return next(err);
+          }
+        });
+      }
+    }
+    
+    // 레거시 경로가 아니면 다음 미들웨어로 (v1 경로는 apiRouter가 처리)
+    next();
+  });
+  
+  // 정상 v1 경로 처리
   app.use('/api', apiRouter);
+  logger.info('API 라우터 등록 완료', { path: '/api' });
 } else {
+  logger.error('API 라우터가 null입니다. /api 엔드포인트가 작동하지 않습니다.');
   app.use('/api', (req, res) => {
     res.status(503).json({ message: 'API 라우터를 로드할 수 없습니다.' });
   });

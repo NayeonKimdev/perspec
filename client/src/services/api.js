@@ -3,13 +3,13 @@ import { getErrorMessage, getToastMessage } from '../utils/errorHandler';
 
 // API 기본 설정
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: '/api/v1',
   timeout: 10000, // 기본 10초
 });
 
 // 긴 작업을 위한 별도 인스턴스 (레포트 생성 등)
 const longRunningApi = axios.create({
-  baseURL: '/api',
+  baseURL: '/api/v1',
   timeout: 180000, // 3분 (180초)
 });
 
