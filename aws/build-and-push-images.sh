@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-REGION="ap-southeast-2"
+REGION="ap-northeast-2"
 ACCOUNT_ID="109968338833"
 ECR_REGISTRY="${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com"
 
