@@ -20,7 +20,7 @@
         "secretsmanager:GetSecretValue",
         "secretsmanager:DescribeSecret"
       ],
-      "Resource": "arn:aws:secretsmanager:ap-southeast-2:109968338833:secret:perspec/production-*"
+      "Resource": "arn:aws:secretsmanager:ap-northeast-2:109968338833:secret:perspec/production-*"
     }
   ]
 }

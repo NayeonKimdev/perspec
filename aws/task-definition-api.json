@@ -9,7 +9,7 @@
   "containerDefinitions": [
     {
       "name": "perspec-api",
-      "image": "109968338833.dkr.ecr.ap-southeast-2.amazonaws.com/perspec-api:latest",
+      "image": "109968338833.dkr.ecr.ap-northeast-2.amazonaws.com/perspec-api:latest",
       "essential": true,
       "portMappings": [
         {
@@ -28,7 +28,7 @@
         },
         {
           "name": "AWS_REGION",
-          "value": "ap-southeast-2"
+          "value": "ap-northeast-2"
         },
         {
           "name": "AWS_SECRETS_MANAGER_SECRET_NAME",
@@ -50,78 +50,78 @@
       "secrets": [
         {
           "name": "DB_HOST",
-          "valueFrom": "arn:aws:secretsmanager:ap-southeast-2:109968338833:secret:perspec/production-XInJ1q:DB_HOST::"
+          "valueFrom": "arn:aws:secretsmanager:ap-northeast-2:109968338833:secret:perspec/production-hjVXuL:DB_HOST::"
         },
         {
           "name": "DB_PORT",
-          "valueFrom": "arn:aws:secretsmanager:ap-southeast-2:109968338833:secret:perspec/production-XInJ1q:DB_PORT::"
+          "valueFrom": "arn:aws:secretsmanager:ap-northeast-2:109968338833:secret:perspec/production-hjVXuL:DB_PORT::"
         },
         {
           "name": "DB_NAME",
-          "valueFrom": "arn:aws:secretsmanager:ap-southeast-2:109968338833:secret:perspec/production-XInJ1q:DB_NAME::"
+          "valueFrom": "arn:aws:secretsmanager:ap-northeast-2:109968338833:secret:perspec/production-hjVXuL:DB_NAME::"
         },
         {
           "name": "DB_USER",
-          "valueFrom": "arn:aws:secretsmanager:ap-southeast-2:109968338833:secret:perspec/production-XInJ1q:DB_USER::"
+          "valueFrom": "arn:aws:secretsmanager:ap-northeast-2:109968338833:secret:perspec/production-hjVXuL:DB_USER::"
         },
         {
           "name": "DB_PASSWORD",
-          "valueFrom": "arn:aws:secretsmanager:ap-southeast-2:109968338833:secret:perspec/production-XInJ1q:DB_PASSWORD::"
+          "valueFrom": "arn:aws:secretsmanager:ap-northeast-2:109968338833:secret:perspec/production-hjVXuL:DB_PASSWORD::"
         },
         {
           "name": "JWT_SECRET",
-          "valueFrom": "arn:aws:secretsmanager:ap-southeast-2:109968338833:secret:perspec/production-XInJ1q:JWT_SECRET::"
+          "valueFrom": "arn:aws:secretsmanager:ap-northeast-2:109968338833:secret:perspec/production-hjVXuL:JWT_SECRET::"
         },
         {
           "name": "OPENAI_API_KEY",
-          "valueFrom": "arn:aws:secretsmanager:ap-southeast-2:109968338833:secret:perspec/production-XInJ1q:OPENAI_API_KEY::"
+          "valueFrom": "arn:aws:secretsmanager:ap-northeast-2:109968338833:secret:perspec/production-hjVXuL:OPENAI_API_KEY::"
         },
         {
           "name": "GOOGLE_CLIENT_ID",
-          "valueFrom": "arn:aws:secretsmanager:ap-southeast-2:109968338833:secret:perspec/production-XInJ1q:GOOGLE_CLIENT_ID::"
+          "valueFrom": "arn:aws:secretsmanager:ap-northeast-2:109968338833:secret:perspec/production-hjVXuL:GOOGLE_CLIENT_ID::"
         },
         {
           "name": "GOOGLE_CLIENT_SECRET",
-          "valueFrom": "arn:aws:secretsmanager:ap-southeast-2:109968338833:secret:perspec/production-XInJ1q:GOOGLE_CLIENT_SECRET::"
+          "valueFrom": "arn:aws:secretsmanager:ap-northeast-2:109968338833:secret:perspec/production-hjVXuL:GOOGLE_CLIENT_SECRET::"
         },
         {
           "name": "GOOGLE_CALLBACK_URL",
-          "valueFrom": "arn:aws:secretsmanager:ap-southeast-2:109968338833:secret:perspec/production-XInJ1q:GOOGLE_CALLBACK_URL::"
+          "valueFrom": "arn:aws:secretsmanager:ap-northeast-2:109968338833:secret:perspec/production-hjVXuL:GOOGLE_CALLBACK_URL::"
         },
         {
           "name": "KAKAO_CLIENT_ID",
-          "valueFrom": "arn:aws:secretsmanager:ap-southeast-2:109968338833:secret:perspec/production-XInJ1q:KAKAO_CLIENT_ID::"
+          "valueFrom": "arn:aws:secretsmanager:ap-northeast-2:109968338833:secret:perspec/production-hjVXuL:KAKAO_CLIENT_ID::"
         },
         {
           "name": "KAKAO_CLIENT_SECRET",
-          "valueFrom": "arn:aws:secretsmanager:ap-southeast-2:109968338833:secret:perspec/production-XInJ1q:KAKAO_CLIENT_SECRET::"
+          "valueFrom": "arn:aws:secretsmanager:ap-northeast-2:109968338833:secret:perspec/production-hjVXuL:KAKAO_CLIENT_SECRET::"
         },
         {
           "name": "KAKAO_CALLBACK_URL",
-          "valueFrom": "arn:aws:secretsmanager:ap-southeast-2:109968338833:secret:perspec/production-XInJ1q:KAKAO_CALLBACK_URL::"
+          "valueFrom": "arn:aws:secretsmanager:ap-northeast-2:109968338833:secret:perspec/production-hjVXuL:KAKAO_CALLBACK_URL::"
         },
         {
           "name": "NAVER_CLIENT_ID",
-          "valueFrom": "arn:aws:secretsmanager:ap-southeast-2:109968338833:secret:perspec/production-XInJ1q:NAVER_CLIENT_ID::"
+          "valueFrom": "arn:aws:secretsmanager:ap-northeast-2:109968338833:secret:perspec/production-hjVXuL:NAVER_CLIENT_ID::"
         },
         {
           "name": "NAVER_CLIENT_SECRET",
-          "valueFrom": "arn:aws:secretsmanager:ap-southeast-2:109968338833:secret:perspec/production-XInJ1q:NAVER_CLIENT_SECRET::"
+          "valueFrom": "arn:aws:secretsmanager:ap-northeast-2:109968338833:secret:perspec/production-hjVXuL:NAVER_CLIENT_SECRET::"
         },
         {
           "name": "NAVER_CALLBACK_URL",
-          "valueFrom": "arn:aws:secretsmanager:ap-southeast-2:109968338833:secret:perspec/production-XInJ1q:NAVER_CALLBACK_URL::"
+          "valueFrom": "arn:aws:secretsmanager:ap-northeast-2:109968338833:secret:perspec/production-hjVXuL:NAVER_CALLBACK_URL::"
         },
         {
           "name": "FRONTEND_URL",
-          "valueFrom": "arn:aws:secretsmanager:ap-southeast-2:109968338833:secret:perspec/production-XInJ1q:FRONTEND_URL::"
+          "valueFrom": "arn:aws:secretsmanager:ap-northeast-2:109968338833:secret:perspec/production-hjVXuL:FRONTEND_URL::"
         }
       ],
       "logConfiguration": {
         "logDriver": "awslogs",
         "options": {
           "awslogs-group": "/ecs/perspec-api",
-          "awslogs-region": "ap-southeast-2",
+          "awslogs-region": "ap-northeast-2",
           "awslogs-stream-prefix": "ecs"
         }
       },
