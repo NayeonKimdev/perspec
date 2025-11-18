@@ -9,7 +9,7 @@
   "containerDefinitions": [
     {
       "name": "perspec-client",
-      "image": "109968338833.dkr.ecr.ap-southeast-2.amazonaws.com/perspec-client:latest",
+      "image": "109968338833.dkr.ecr.ap-northeast-2.amazonaws.com/perspec-client:latest",
       "essential": true,
       "portMappings": [
         {
@@ -21,7 +21,7 @@
         "logDriver": "awslogs",
         "options": {
           "awslogs-group": "/ecs/perspec-client",
-          "awslogs-region": "ap-southeast-2",
+          "awslogs-region": "ap-northeast-2",
           "awslogs-stream-prefix": "ecs"
         }
       },
