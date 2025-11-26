@@ -176,13 +176,80 @@ router.post('/reset-password', [
  *         description: Google OAuth가 설정되지 않음
  */
 router.get('/google', (req, res, next) => {
+  const logger = require('../utils/logger');
+  
+  // OAuth 인증 엔드포인트는 캐시되면 안 됩니다 (매번 새로운 리다이렉트 필요)
+  res.set({
+    'Cache-Control': 'no-store, no-cache, must-revalidate, private',
+    'Pragma': 'no-cache',
+    'Expires': '0'
+  });
+  
   // Google 전략이 등록되어 있는지 확인
   if (!passport._strategies || !passport._strategies.google) {
+    logger.error('Google OAuth 전략이 등록되지 않음');
     return res.status(503).json({ 
       message: 'Google 소셜 로그인이 설정되지 않았습니다. GOOGLE_CLIENT_ID와 GOOGLE_CLIENT_SECRET 환경 변수를 확인해주세요.' 
     });
   }
-  passport.authenticate('google', { scope: ['profile', 'email'] })(req, res, next);
+  
+  // 디버깅: 실제 redirect_uri 확인
+  const callbackURL = process.env.GOOGLE_CALLBACK_URL || '/api/v1/auth/google/callback';
+  const protocol = req.protocol || 'https';
+  const host = req.get('host') || 'perspec.co.kr';
+  const fullCallbackURL = callbackURL.startsWith('http') 
+    ? callbackURL 
+    : `${protocol}://${host}${callbackURL}`;
+  
+  logger.info('Google OAuth 요청', {
+    callbackURL: callbackURL,
+    fullCallbackURL: fullCallbackURL,
+    protocol: req.protocol,
+    host: req.get('host'),
+    'x-forwarded-proto': req.get('x-forwarded-proto'),
+    'x-forwarded-host': req.get('x-forwarded-host')
+  });
+  
+  // passport.authenticate는 정상적으로 작동하면 자동으로 Google OAuth 페이지로 리다이렉트합니다
+  // 타임아웃 설정: 5초 내에 리다이렉트가 발생하지 않으면 에러 처리
+  const redirectTimeout = setTimeout(() => {
+    if (!res.headersSent) {
+      logger.error('Google OAuth 리다이렉트 타임아웃 - 응답이 전송되지 않았습니다');
+      const frontendUrl = process.env.FRONTEND_URL || 'https://perspec.co.kr';
+      return res.redirect(`${frontendUrl}/login?error=google_auth_timeout`);
+    }
+  }, 5000);
+  
+  try {
+    passport.authenticate('google', { scope: ['profile', 'email'] })(req, res, (err) => {
+      clearTimeout(redirectTimeout);
+      if (err) {
+        logger.error('Google OAuth 인증 에러', {
+          error: err.message,
+          stack: err.stack
+        });
+        const frontendUrl = process.env.FRONTEND_URL || 'https://perspec.co.kr';
+        return res.redirect(`${frontendUrl}/login?error=google_auth_failed`);
+      }
+      // 정상적으로 작동하면 passport.authenticate가 자동으로 리다이렉트하므로 여기 도달하지 않습니다
+      // 하지만 혹시 모를 경우를 대비해 에러 처리
+      if (!res.headersSent) {
+        logger.warn('Google OAuth: 예상치 못한 경로 도달 - 리다이렉트가 발생하지 않았습니다');
+        const frontendUrl = process.env.FRONTEND_URL || 'https://perspec.co.kr';
+        return res.redirect(`${frontendUrl}/login?error=google_auth_failed`);
+      }
+    });
+  } catch (error) {
+    clearTimeout(redirectTimeout);
+    logger.error('Google OAuth 라우트 에러', {
+      error: error.message,
+      stack: error.stack
+    });
+    if (!res.headersSent) {
+      const frontendUrl = process.env.FRONTEND_URL || 'https://perspec.co.kr';
+      return res.redirect(`${frontendUrl}/login?error=google_auth_failed`);
+    }
+  }
 });
 
 /**
@@ -238,12 +305,26 @@ router.get('/google/callback',
  *         description: Kakao OAuth가 설정되지 않음
  */
 router.get('/kakao', (req, res, next) => {
+  const logger = require('../utils/logger');
+  
+  // OAuth 인증 엔드포인트는 캐시되면 안 됩니다 (매번 새로운 리다이렉트 필요)
+  res.set({
+    'Cache-Control': 'no-store, no-cache, must-revalidate, private',
+    'Pragma': 'no-cache',
+    'Expires': '0'
+  });
+  
   // Kakao 전략이 등록되어 있는지 확인
   if (!passport._strategies || !passport._strategies.kakao) {
+    logger.error('Kakao OAuth 전략이 등록되지 않음');
     return res.status(503).json({ 
       message: 'Kakao 소셜 로그인이 설정되지 않았습니다. KAKAO_CLIENT_ID와 KAKAO_CLIENT_SECRET 환경 변수를 확인해주세요.' 
     });
   }
+  
+  logger.info('Kakao OAuth 요청');
+  
+  // passport.authenticate는 정상적으로 작동하면 자동으로 Kakao OAuth 페이지로 리다이렉트합니다
   passport.authenticate('kakao')(req, res, next);
 });
 
@@ -293,12 +374,26 @@ router.get('/kakao/callback',
  *         description: Naver OAuth가 설정되지 않음
  */
 router.get('/naver', (req, res, next) => {
+  const logger = require('../utils/logger');
+  
+  // OAuth 인증 엔드포인트는 캐시되면 안 됩니다 (매번 새로운 리다이렉트 필요)
+  res.set({
+    'Cache-Control': 'no-store, no-cache, must-revalidate, private',
+    'Pragma': 'no-cache',
+    'Expires': '0'
+  });
+  
   // Naver 전략이 등록되어 있는지 확인
   if (!passport._strategies || !passport._strategies.naver) {
+    logger.error('Naver OAuth 전략이 등록되지 않음');
     return res.status(503).json({ 
       message: 'Naver 소셜 로그인이 설정되지 않았습니다. NAVER_CLIENT_ID와 NAVER_CLIENT_SECRET 환경 변수를 확인해주세요.' 
     });
   }
+  
+  logger.info('Naver OAuth 요청');
+  
+  // passport.authenticate는 정상적으로 작동하면 자동으로 Naver OAuth 페이지로 리다이렉트합니다
   passport.authenticate('naver')(req, res, next);
 });
 

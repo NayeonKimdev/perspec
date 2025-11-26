@@ -132,13 +132,30 @@ function initializePassportStrategies() {
    * Google OAuth 2.0 전략 설정
    */
   if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+    // callbackURL을 절대 URL로 강제 설정
+    let googleCallbackURL = process.env.GOOGLE_CALLBACK_URL || '/api/v1/auth/google/callback';
+    
+    // 상대 경로인 경우 절대 URL로 변환 (프로덕션 환경)
+    if (!googleCallbackURL.startsWith('http')) {
+      // 프로덕션에서는 환경 변수에서 가져온 값 사용
+      const frontendUrl = process.env.FRONTEND_URL || 'https://perspec.co.kr';
+      googleCallbackURL = `${frontendUrl}${googleCallbackURL}`;
+    }
+    
+    logger.info('Google OAuth 설정', {
+      clientID: process.env.GOOGLE_CLIENT_ID,
+      callbackURL: googleCallbackURL,
+      originalCallbackURL: process.env.GOOGLE_CALLBACK_URL,
+      hasCallbackURL: !!process.env.GOOGLE_CALLBACK_URL
+    });
+    
     passport.use(
       'google',
       new GoogleStrategy(
         {
           clientID: process.env.GOOGLE_CLIENT_ID,
           clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-          callbackURL: process.env.GOOGLE_CALLBACK_URL || '/api/v1/auth/google/callback'
+          callbackURL: googleCallbackURL
         },
         async (accessToken, refreshToken, profile, done) => {
           try {
@@ -172,13 +189,28 @@ function initializePassportStrategies() {
    * Kakao OAuth 2.0 전략 설정
    */
   if (process.env.KAKAO_CLIENT_ID && process.env.KAKAO_CLIENT_SECRET) {
+    // callbackURL을 절대 URL로 강제 설정
+    let kakaoCallbackURL = process.env.KAKAO_CALLBACK_URL || '/api/v1/auth/kakao/callback';
+    
+    // 상대 경로인 경우 절대 URL로 변환 (프로덕션 환경)
+    if (!kakaoCallbackURL.startsWith('http')) {
+      const frontendUrl = process.env.FRONTEND_URL || 'https://perspec.co.kr';
+      kakaoCallbackURL = `${frontendUrl}${kakaoCallbackURL}`;
+    }
+    
+    logger.info('Kakao OAuth 설정', {
+      clientID: process.env.KAKAO_CLIENT_ID,
+      callbackURL: kakaoCallbackURL,
+      originalCallbackURL: process.env.KAKAO_CALLBACK_URL
+    });
+    
     passport.use(
       'kakao',
       new KakaoStrategy(
         {
           clientID: process.env.KAKAO_CLIENT_ID,
           clientSecret: process.env.KAKAO_CLIENT_SECRET,
-          callbackURL: process.env.KAKAO_CALLBACK_URL || '/api/v1/auth/kakao/callback'
+          callbackURL: kakaoCallbackURL
         },
         async (accessToken, refreshToken, profile, done) => {
           try {
@@ -213,13 +245,28 @@ function initializePassportStrategies() {
    * Naver OAuth 2.0 전략 설정
    */
   if (process.env.NAVER_CLIENT_ID && process.env.NAVER_CLIENT_SECRET) {
+    // callbackURL을 절대 URL로 강제 설정
+    let naverCallbackURL = process.env.NAVER_CALLBACK_URL || '/api/v1/auth/naver/callback';
+    
+    // 상대 경로인 경우 절대 URL로 변환 (프로덕션 환경)
+    if (!naverCallbackURL.startsWith('http')) {
+      const frontendUrl = process.env.FRONTEND_URL || 'https://perspec.co.kr';
+      naverCallbackURL = `${frontendUrl}${naverCallbackURL}`;
+    }
+    
+    logger.info('Naver OAuth 설정', {
+      clientID: process.env.NAVER_CLIENT_ID,
+      callbackURL: naverCallbackURL,
+      originalCallbackURL: process.env.NAVER_CALLBACK_URL
+    });
+    
     passport.use(
       'naver',
       new NaverStrategy(
         {
           clientID: process.env.NAVER_CLIENT_ID,
           clientSecret: process.env.NAVER_CLIENT_SECRET,
-          callbackURL: process.env.NAVER_CALLBACK_URL || '/api/v1/auth/naver/callback'
+          callbackURL: naverCallbackURL
         },
         async (accessToken, refreshToken, profile, done) => {
           try {

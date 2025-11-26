@@ -22,6 +22,28 @@ const Login = () => {
   const navigate = useNavigate();
   const toast = useToast();
 
+  // 컴포넌트 마운트 시 로딩 상태 초기화 (뒤로가기 시 로딩 상태 해제)
+  useEffect(() => {
+    setIsGoogleLoading(false);
+    setIsKakaoLoading(false);
+    setIsNaverLoading(false);
+  }, []);
+
+  // 브라우저 뒤로가기/앞으로가기 시에도 로딩 상태 초기화
+  useEffect(() => {
+    const handlePageShow = (e) => {
+      // 뒤로가기로 돌아온 경우 (persisted가 true)
+      if (e.persisted) {
+        setIsGoogleLoading(false);
+        setIsKakaoLoading(false);
+        setIsNaverLoading(false);
+      }
+    };
+
+    window.addEventListener('pageshow', handlePageShow);
+    return () => window.removeEventListener('pageshow', handlePageShow);
+  }, []);
+
   // URL 파라미터에서 에러 확인 (Google 로그인 실패 시)
   useEffect(() => {
     const error = searchParams.get('error');
@@ -144,27 +166,41 @@ const Login = () => {
     }
   };
 
-  // 백엔드 API 주소 (환경 변수 또는 기본값)
-  const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  // 백엔드 API 주소 (프로덕션에서는 상대 경로 사용, 개발 환경에서만 절대 경로)
+  const getApiBaseUrl = () => {
+    // 환경 변수가 설정되어 있으면 사용
+    if (import.meta.env.VITE_API_URL) {
+      return import.meta.env.VITE_API_URL;
+    }
+    // 프로덕션 환경(도메인 사용 중)에서는 상대 경로 사용
+    if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+      return ''; // 상대 경로 사용
+    }
+    // 개발 환경에서는 localhost 사용
+    return 'http://localhost:5000';
+  };
 
   const handleGoogleLogin = () => {
     setIsGoogleLoading(true);
     setTimeout(() => {
-      window.location.href = `${API_BASE_URL}/api/v1/auth/google`;
+      const apiBaseUrl = getApiBaseUrl();
+      window.location.href = `${apiBaseUrl}/api/v1/auth/google`;
     }, 100);
   };
 
   const handleKakaoLogin = () => {
     setIsKakaoLoading(true);
     setTimeout(() => {
-      window.location.href = `${API_BASE_URL}/api/v1/auth/kakao`;
+      const apiBaseUrl = getApiBaseUrl();
+      window.location.href = `${apiBaseUrl}/api/v1/auth/kakao`;
     }, 100);
   };
 
   const handleNaverLogin = () => {
     setIsNaverLoading(true);
     setTimeout(() => {
-      window.location.href = `${API_BASE_URL}/api/v1/auth/naver`;
+      const apiBaseUrl = getApiBaseUrl();
+      window.location.href = `${apiBaseUrl}/api/v1/auth/naver`;
     }, 100);
   };
 

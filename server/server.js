@@ -25,6 +25,7 @@ dotenv.config({ path: path.join(__dirname, '.env') });
 
 // AWS Secrets Manager 초기화 (프로덕션 환경)
 // 서버 시작 전에 완료되어야 하므로 동기적으로 대기
+let secretsInitialized = false;
 if (process.env.NODE_ENV === 'production') {
   const { initializeSecrets } = require('./config/awsSecretsManager');
   // 비동기 초기화를 동기적으로 대기
@@ -36,12 +37,16 @@ if (process.env.NODE_ENV === 'production') {
       if (passport.initializePassportStrategies) {
         passport.initializePassportStrategies();
         logger.info('Secrets Manager 초기화 완료, Passport 전략 재등록 완료');
+        secretsInitialized = true;
       }
     } catch (error) {
       logger.error('Secrets Manager 초기화 실패', { error: error.message });
       // 프로덕션에서는 환경 변수 직접 사용 시도
+      secretsInitialized = true; // 실패해도 계속 진행
     }
   })();
+} else {
+  secretsInitialized = true; // 개발 환경에서는 이미 로드됨
 }
 
 // 환경별 설정 로드
@@ -407,26 +412,54 @@ const testDatabaseConnection = async () => {
   }
 };
 
-// 서버 시작
-app.listen(PORT, async () => {
-  logger.info('서버 시작', { 
-    port: PORT, 
-    environment: nodeEnv,
-    logLevel: appConfig.logLevel,
-    compression: appConfig.compressionEnabled,
-    swagger: appConfig.enableSwagger
-  });
+// 서버 시작 (프로덕션에서는 Secrets Manager 초기화 대기)
+const startServer = async () => {
+  // 프로덕션 환경에서는 Secrets Manager 초기화 대기
+  if (process.env.NODE_ENV === 'production' && !secretsInitialized) {
+    logger.info('Secrets Manager 초기화 대기 중...');
+    // 최대 10초 대기
+    let waitCount = 0;
+    while (!secretsInitialized && waitCount < 100) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+      waitCount++;
+    }
+    if (!secretsInitialized) {
+      logger.warn('Secrets Manager 초기화가 완료되지 않았지만 서버를 시작합니다.');
+    }
+  }
   
-  // 데이터베이스 연결 테스트
-  await testDatabaseConnection();
-}).on('error', (error) => {
-  logger.error('서버 시작 실패', {
-    error: error.message,
-    stack: error.stack,
-    code: error.code
+  // Passport 전략 등록 확인
+  const passport = require('./config/passport');
+  if (passport._strategies) {
+    logger.info('등록된 Passport 전략', {
+      strategies: Object.keys(passport._strategies)
+    });
+  } else {
+    logger.warn('Passport 전략이 등록되지 않았습니다.');
+  }
+  
+  app.listen(PORT, async () => {
+    logger.info('서버 시작', { 
+      port: PORT, 
+      environment: nodeEnv,
+      logLevel: appConfig.logLevel,
+      compression: appConfig.compressionEnabled,
+      swagger: appConfig.enableSwagger
+    });
+    
+    // 데이터베이스 연결 테스트
+    await testDatabaseConnection();
+  }).on('error', (error) => {
+    logger.error('서버 시작 실패', {
+      error: error.message,
+      stack: error.stack,
+      code: error.code
+    });
+    console.error('서버 시작 실패:', error);
+    process.exit(1);
   });
-  console.error('서버 시작 실패:', error);
-  process.exit(1);
-});
+};
+
+startServer();
 
 module.exports = app;
