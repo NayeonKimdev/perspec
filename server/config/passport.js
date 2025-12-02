@@ -224,8 +224,8 @@ function initializePassportStrategies() {
         {
           clientID: process.env.KAKAO_CLIENT_ID,
           clientSecret: process.env.KAKAO_CLIENT_SECRET,
-          callbackURL: kakaoCallbackURL,
-          scope: ['profile_nickname', 'account_email'] // 이메일 정보 요청
+          callbackURL: kakaoCallbackURL
+          // scope 제거: Kakao 개발자 콘솔에서 동의 항목을 설정하지 않았으므로 기본 동의 항목만 사용
         },
         async (accessToken, refreshToken, profile, done) => {
           try {
