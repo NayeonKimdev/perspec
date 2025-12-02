@@ -244,15 +244,17 @@ function initializePassportStrategies() {
             
             const { id } = profile;
             // Kakao는 profile._json에 이메일 정보가 있음
-            const email = profile._json?.kakao_account?.email || null;
+            let email = profile._json?.kakao_account?.email || null;
 
+            // 이메일이 없는 경우 임시 이메일 생성 (Kakao ID 기반)
             if (!email) {
-              logger.warn('Kakao 로그인 실패 - 이메일 정보 없음', {
+              logger.warn('Kakao 로그인 - 이메일 정보 없음, 임시 이메일 생성', {
                 kakaoId: id,
-                profileJson: JSON.stringify(profile._json, null, 2),
                 emailNeedsAgreement: profile._json?.kakao_account?.email_needs_agreement
               });
-              return done(new Error('Kakao 계정에서 이메일 정보를 가져올 수 없습니다. 이메일 동의가 필요합니다.'), null);
+              // 임시 이메일: kakao_{kakaoId}@kakao.temp 형식
+              email = `kakao_${id}@kakao.temp`;
+              logger.info('Kakao 임시 이메일 생성', { kakaoId: id, tempEmail: email });
             }
 
             logger.info('Kakao OAuth 사용자 생성/조회 시작', { kakaoId: id, email });
