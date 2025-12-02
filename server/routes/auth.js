@@ -393,10 +393,63 @@ router.get('/kakao', (req, res, next) => {
     });
   }
   
-  logger.info('Kakao OAuth 요청');
+  // 디버깅: 실제 redirect_uri 확인
+  const callbackURL = process.env.KAKAO_CALLBACK_URL || '/api/v1/auth/kakao/callback';
+  const protocol = req.protocol || 'https';
+  const host = req.get('host') || 'perspec.co.kr';
+  const fullCallbackURL = callbackURL.startsWith('http') 
+    ? callbackURL 
+    : `${protocol}://${host}${callbackURL}`;
+  
+  logger.info('Kakao OAuth 요청', {
+    callbackURL: callbackURL,
+    fullCallbackURL: fullCallbackURL,
+    protocol: req.protocol,
+    host: req.get('host'),
+    'x-forwarded-proto': req.get('x-forwarded-proto'),
+    'x-forwarded-host': req.get('x-forwarded-host')
+  });
   
   // passport.authenticate는 정상적으로 작동하면 자동으로 Kakao OAuth 페이지로 리다이렉트합니다
-  passport.authenticate('kakao')(req, res, next);
+  // 타임아웃 설정: 5초 내에 리다이렉트가 발생하지 않으면 에러 처리
+  const redirectTimeout = setTimeout(() => {
+    if (!res.headersSent) {
+      logger.error('Kakao OAuth 리다이렉트 타임아웃 - 응답이 전송되지 않았습니다');
+      const frontendUrl = process.env.FRONTEND_URL || 'https://perspec.co.kr';
+      return res.redirect(`${frontendUrl}/login?error=kakao_auth_timeout`);
+    }
+  }, 5000);
+  
+  try {
+    passport.authenticate('kakao')(req, res, (err) => {
+      clearTimeout(redirectTimeout);
+      if (err) {
+        logger.error('Kakao OAuth 인증 에러', {
+          error: err.message,
+          stack: err.stack
+        });
+        const frontendUrl = process.env.FRONTEND_URL || 'https://perspec.co.kr';
+        return res.redirect(`${frontendUrl}/login?error=kakao_auth_failed`);
+      }
+      // 정상적으로 작동하면 passport.authenticate가 자동으로 리다이렉트하므로 여기 도달하지 않습니다
+      // 하지만 혹시 모를 경우를 대비해 에러 처리
+      if (!res.headersSent) {
+        logger.warn('Kakao OAuth: 예상치 못한 경로 도달 - 리다이렉트가 발생하지 않았습니다');
+        const frontendUrl = process.env.FRONTEND_URL || 'https://perspec.co.kr';
+        return res.redirect(`${frontendUrl}/login?error=kakao_auth_failed`);
+      }
+    });
+  } catch (error) {
+    clearTimeout(redirectTimeout);
+    logger.error('Kakao OAuth 라우트 에러', {
+      error: error.message,
+      stack: error.stack
+    });
+    if (!res.headersSent) {
+      const frontendUrl = process.env.FRONTEND_URL || 'https://perspec.co.kr';
+      return res.redirect(`${frontendUrl}/login?error=kakao_auth_failed`);
+    }
+  }
 });
 
 /**
@@ -412,17 +465,82 @@ router.get('/kakao', (req, res, next) => {
  */
 router.get('/kakao/callback', 
   (req, res, next) => {
+    const logger = require('../utils/logger');
+    logger.info('Kakao OAuth 콜백 요청', {
+      query: req.query,
+      code: req.query.code ? 'present' : 'missing',
+      error: req.query.error,
+      state: req.query.state ? 'present' : 'missing',
+      fullUrl: req.originalUrl,
+      headers: {
+        'user-agent': req.get('user-agent'),
+        'referer': req.get('referer')
+      }
+    });
+    
+    // Kakao에서 에러를 반환한 경우
+    if (req.query.error) {
+      logger.error('Kakao OAuth 콜백 - Kakao에서 에러 반환', {
+        error: req.query.error,
+        error_description: req.query.error_description,
+        error_uri: req.query.error_uri
+      });
+      const frontendUrl = process.env.FRONTEND_URL || 'https://perspec.co.kr';
+      return res.redirect(`${frontendUrl}/login?error=kakao_auth_failed&reason=${encodeURIComponent(req.query.error)}`);
+    }
+    
+    // 인증 코드가 없는 경우
+    if (!req.query.code) {
+      logger.warn('Kakao OAuth 콜백 - 인증 코드 없음', {
+        query: req.query
+      });
+      const frontendUrl = process.env.FRONTEND_URL || 'https://perspec.co.kr';
+      return res.redirect(`${frontendUrl}/login?error=kakao_auth_failed&reason=no_code`);
+    }
+    
+    // Kakao 전략이 등록되어 있는지 확인
+    if (!passport._strategies || !passport._strategies.kakao) {
+      logger.error('Kakao OAuth 콜백 - Kakao 전략이 등록되지 않음');
+      const frontendUrl = process.env.FRONTEND_URL || 'https://perspec.co.kr';
+      return res.redirect(`${frontendUrl}/login?error=kakao_auth_failed&reason=strategy_not_registered`);
+    }
+    
+    // passport.authenticate 호출 전 설정 확인
+    const kakaoStrategy = passport._strategies.kakao;
+    logger.info('Kakao OAuth 콜백 - passport.authenticate 호출 전', {
+      hasKakaoStrategy: true,
+      callbackURL: process.env.KAKAO_CALLBACK_URL,
+      clientID: process.env.KAKAO_CLIENT_ID ? process.env.KAKAO_CLIENT_ID.substring(0, 20) + '...' : 'missing',
+      clientSecret: process.env.KAKAO_CLIENT_SECRET ? 'present' : 'missing',
+      code: req.query.code ? req.query.code.substring(0, 20) + '...' : 'missing'
+    });
+    
     passport.authenticate('kakao', { session: false }, (err, user, info) => {
       if (err) {
-        // 에러 발생 시 프론트엔드로 리다이렉트
-        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-        return res.redirect(`${frontendUrl}/login?error=kakao_auth_failed`);
+        logger.error('Kakao OAuth 콜백 인증 에러', {
+          error: err.message,
+          errorName: err.name,
+          stack: err.stack,
+          info: info,
+          query: req.query,
+          oauthError: err.oauthError || null,
+          statusCode: err.statusCode || null
+        });
+        const frontendUrl = process.env.FRONTEND_URL || 'https://perspec.co.kr';
+        return res.redirect(`${frontendUrl}/login?error=kakao_auth_failed&reason=auth_error`);
       }
       if (!user) {
-        // 사용자 인증 실패 시 프론트엔드로 리다이렉트
-        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-        return res.redirect(`${frontendUrl}/login?error=kakao_auth_failed`);
+        logger.warn('Kakao OAuth 콜백 - 사용자 정보 없음', {
+          info: info,
+          query: req.query
+        });
+        const frontendUrl = process.env.FRONTEND_URL || 'https://perspec.co.kr';
+        return res.redirect(`${frontendUrl}/login?error=kakao_auth_failed&reason=no_user`);
       }
+      logger.info('Kakao OAuth 콜백 성공 - 사용자 정보 설정', {
+        userId: user.id,
+        email: user.email
+      });
       // 인증 성공 시 req.user에 사용자 정보 설정
       req.user = user;
       next();

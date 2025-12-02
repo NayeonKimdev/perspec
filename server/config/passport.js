@@ -159,15 +159,29 @@ function initializePassportStrategies() {
         },
         async (accessToken, refreshToken, profile, done) => {
           try {
+            logger.info('Google OAuth 프로필 정보', {
+              id: profile.id,
+              displayName: profile.displayName,
+              emails: profile.emails,
+              emailsLength: profile.emails ? profile.emails.length : 0,
+              profileKeys: Object.keys(profile)
+            });
+            
             const { id, emails } = profile;
             const email = emails && emails[0] ? emails[0].value : null;
 
             if (!email) {
-              logger.warn('Google 로그인 실패 - 이메일 정보 없음', { googleId: id });
+              logger.warn('Google 로그인 실패 - 이메일 정보 없음', { 
+                googleId: id,
+                emails: emails,
+                profile: JSON.stringify(profile, null, 2)
+              });
               return done(new Error('Google 계정에서 이메일 정보를 가져올 수 없습니다.'), null);
             }
 
+            logger.info('Google OAuth 사용자 생성/조회 시작', { googleId: id, email });
             const user = await findOrCreateSocialUser('google', id, email);
+            logger.info('Google OAuth 사용자 생성/조회 완료', { userId: user.id, email: user.email });
             return done(null, user);
           } catch (error) {
             logger.error('Google 로그인 처리 중 오류', {
@@ -214,16 +228,35 @@ function initializePassportStrategies() {
         },
         async (accessToken, refreshToken, profile, done) => {
           try {
+            logger.info('Kakao OAuth 프로필 정보', {
+              id: profile.id,
+              displayName: profile.displayName,
+              username: profile.username,
+              profileKeys: Object.keys(profile),
+              hasJson: !!profile._json,
+              kakaoAccount: profile._json?.kakao_account ? {
+                email: profile._json.kakao_account.email ? 'present' : 'missing',
+                emailNeedsAgreement: profile._json.kakao_account.email_needs_agreement,
+                hasEmail: !!profile._json.kakao_account.email
+              } : 'missing'
+            });
+            
             const { id } = profile;
             // Kakao는 profile._json에 이메일 정보가 있음
             const email = profile._json?.kakao_account?.email || null;
 
             if (!email) {
-              logger.warn('Kakao 로그인 실패 - 이메일 정보 없음', { kakaoId: id });
+              logger.warn('Kakao 로그인 실패 - 이메일 정보 없음', {
+                kakaoId: id,
+                profileJson: JSON.stringify(profile._json, null, 2),
+                emailNeedsAgreement: profile._json?.kakao_account?.email_needs_agreement
+              });
               return done(new Error('Kakao 계정에서 이메일 정보를 가져올 수 없습니다. 이메일 동의가 필요합니다.'), null);
             }
 
+            logger.info('Kakao OAuth 사용자 생성/조회 시작', { kakaoId: id, email });
             const user = await findOrCreateSocialUser('kakao', id.toString(), email);
+            logger.info('Kakao OAuth 사용자 생성/조회 완료', { userId: user.id, email: user.email });
             return done(null, user);
           } catch (error) {
             logger.error('Kakao 로그인 처리 중 오류', {
