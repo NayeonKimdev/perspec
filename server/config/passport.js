@@ -224,7 +224,8 @@ function initializePassportStrategies() {
         {
           clientID: process.env.KAKAO_CLIENT_ID,
           clientSecret: process.env.KAKAO_CLIENT_SECRET,
-          callbackURL: kakaoCallbackURL
+          callbackURL: kakaoCallbackURL,
+          scope: ['profile_nickname', 'account_email'] // 이메일 정보 요청
         },
         async (accessToken, refreshToken, profile, done) => {
           try {
