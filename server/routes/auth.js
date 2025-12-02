@@ -221,7 +221,11 @@ router.get('/google', (req, res, next) => {
   }, 5000);
   
   try {
-    passport.authenticate('google', { scope: ['profile', 'email'] })(req, res, (err) => {
+    // prompt=select_account를 추가하여 항상 계정 선택 화면 표시
+    passport.authenticate('google', { 
+      scope: ['profile', 'email'],
+      prompt: 'select_account' // 계정 선택 화면 강제 표시
+    })(req, res, (err) => {
       clearTimeout(redirectTimeout);
       if (err) {
         logger.error('Google OAuth 인증 에러', {
@@ -272,17 +276,84 @@ router.get('/google', (req, res, next) => {
  */
 router.get('/google/callback', 
   (req, res, next) => {
+    const logger = require('../utils/logger');
+    logger.info('Google OAuth 콜백 요청', {
+      query: req.query,
+      code: req.query.code ? 'present' : 'missing',
+      error: req.query.error,
+      state: req.query.state ? 'present' : 'missing',
+      fullUrl: req.originalUrl,
+      headers: {
+        'user-agent': req.get('user-agent'),
+        'referer': req.get('referer')
+      }
+    });
+    
+    // Google에서 에러를 반환한 경우
+    if (req.query.error) {
+      logger.error('Google OAuth 콜백 - Google에서 에러 반환', {
+        error: req.query.error,
+        error_description: req.query.error_description,
+        error_uri: req.query.error_uri
+      });
+      const frontendUrl = process.env.FRONTEND_URL || 'https://perspec.co.kr';
+      return res.redirect(`${frontendUrl}/login?error=google_auth_failed&reason=${encodeURIComponent(req.query.error)}`);
+    }
+    
+    // 인증 코드가 없는 경우
+    if (!req.query.code) {
+      logger.warn('Google OAuth 콜백 - 인증 코드 없음', {
+        query: req.query
+      });
+      const frontendUrl = process.env.FRONTEND_URL || 'https://perspec.co.kr';
+      return res.redirect(`${frontendUrl}/login?error=google_auth_failed&reason=no_code`);
+    }
+    
+    // Google 전략이 등록되어 있는지 확인
+    if (!passport._strategies || !passport._strategies.google) {
+      logger.error('Google OAuth 콜백 - Google 전략이 등록되지 않음');
+      const frontendUrl = process.env.FRONTEND_URL || 'https://perspec.co.kr';
+      return res.redirect(`${frontendUrl}/login?error=google_auth_failed&reason=strategy_not_registered`);
+    }
+    
+    // passport.authenticate 호출 전 설정 확인
+    const googleStrategy = passport._strategies.google;
+    logger.info('Google OAuth 콜백 - passport.authenticate 호출 전', {
+      hasGoogleStrategy: true,
+      callbackURL: process.env.GOOGLE_CALLBACK_URL,
+      clientID: process.env.GOOGLE_CLIENT_ID ? process.env.GOOGLE_CLIENT_ID.substring(0, 20) + '...' : 'missing',
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET ? 'present' : 'missing',
+      code: req.query.code ? req.query.code.substring(0, 20) + '...' : 'missing',
+      strategyCallbackURL: googleStrategy._oauth2 ? googleStrategy._oauth2._redirectURI : 'unknown'
+    });
+    
     passport.authenticate('google', { session: false }, (err, user, info) => {
       if (err) {
-        // 에러 발생 시 프론트엔드로 리다이렉트
-        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-        return res.redirect(`${frontendUrl}/login?error=google_auth_failed`);
+        logger.error('Google OAuth 콜백 인증 에러', {
+          error: err.message,
+          errorName: err.name,
+          stack: err.stack,
+          info: info,
+          query: req.query,
+          // OAuth 관련 에러인 경우 추가 정보
+          oauthError: err.oauthError || null,
+          statusCode: err.statusCode || null
+        });
+        const frontendUrl = process.env.FRONTEND_URL || 'https://perspec.co.kr';
+        return res.redirect(`${frontendUrl}/login?error=google_auth_failed&reason=auth_error`);
       }
       if (!user) {
-        // 사용자 인증 실패 시 프론트엔드로 리다이렉트
-        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-        return res.redirect(`${frontendUrl}/login?error=google_auth_failed`);
+        logger.warn('Google OAuth 콜백 - 사용자 정보 없음', {
+          info: info,
+          query: req.query
+        });
+        const frontendUrl = process.env.FRONTEND_URL || 'https://perspec.co.kr';
+        return res.redirect(`${frontendUrl}/login?error=google_auth_failed&reason=no_user`);
       }
+      logger.info('Google OAuth 콜백 성공 - 사용자 정보 설정', {
+        userId: user.id,
+        email: user.email
+      });
       // 인증 성공 시 req.user에 사용자 정보 설정
       req.user = user;
       next();
